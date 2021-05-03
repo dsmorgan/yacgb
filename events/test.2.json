@@ -1,0 +1,9 @@
+{
+  "exchange": "kraken",
+  "market_symbol": "LTC/USD",  
+  "grid_spacing": 0.15, 
+  "total_quote": 220, 
+  "max_percent_start": 0.15, 
+  "min_percent_start": 0.15, 
+  "reserve": 0
+}
