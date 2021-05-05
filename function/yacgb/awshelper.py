@@ -14,3 +14,4 @@ def decrypt_environ(enc_environ):
     EncryptionContext={'LambdaFunctionName': os.environ['AWS_LAMBDA_FUNCTION_NAME']})['Plaintext'].decode('utf-8')
     logger.info("Decrypted via KMS: " + enc_environ)
     return(de)
+    

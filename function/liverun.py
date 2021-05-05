@@ -116,14 +116,15 @@ def liverun(event, context):
     
 
 if __name__ == "__main__":
+    logfile = 'bot.log'
     logging.basicConfig(level=logging.INFO, format='%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', 
-                            datefmt='%Y%m%d %H:%M:%S', filename='bot.log')
+                            datefmt='%Y%m%d %H:%M:%S', filename=logfile)
     if (os.environ.get('DYNAMODB_HOST') == None):
         print ('DYNAMODB_HOST not set')
         exit()
 
     print ('DYNAMODB_HOST=' + os.environ.get('DYNAMODB_HOST'))
-
+    print ('logging output to ' + logfile)
     error_count=0
     while True:
         try:

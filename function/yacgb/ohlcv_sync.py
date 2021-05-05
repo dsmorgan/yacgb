@@ -30,7 +30,6 @@ def rounded_down_time(timeframe, ct):
     #Unexpected result, return None
     return (None)
     
-    
 
 def save_candles(exch, ms, tf, ndt, candles):
     # Get minute/hour/day timeframe OHLCV candles data, grouped per hour/day/month in a table entry
@@ -66,6 +65,38 @@ def save_candles(exch, ms, tf, ndt, candles):
     return
 
     
-
-
+class candle_limits:
+    #Default values
+    limit_1m = 660
+    limit_1h = 360
+    limit_1d = 62
+    
+    def __init__(self, last_ts, this_minute):
+        logger.debug("last_ts %s this_minute %s" %(str(last_ts), str(this_minute)))
+        if last_ts == None:
+            # New entry, set defaults
+            logger.debug("last_ts == None, using default values for limits")
+        else:
+            #calculate from last_timestamp how far back we need to go
+            #since we shouldn't assume that the run interval is deterministic
+            #last_timestamp is the last minute that isn't the current minute
+            ltsminute = datetime.datetime.fromtimestamp(last_ts - 60, tz=timezone.utc)
+            ltshour = ltsminute.replace(minute=0, second=0)
+            ltsday = ltshour.replace(hour=0)
+            ltsmonth = ltsday.replace(day=1)
+            logger.debug("lts: minute %s hour %s day %s month %s" % (ltsminute, ltshour, ltsday, ltsmonth))
+            #diff of last update to this minute
+            self.limit_1m = int(((this_minute - ltshour).total_seconds()) // 60 ) + 2
+            if self.limit_1m > 660:
+                logger.debug('limit_1m too big: '+ str(self.limit_1m) + ' using default')
+                self.limit_1m = 660
+            self.limit_1h = int(((this_minute - ltsday).total_seconds()) // 3600 ) + 1
+            if self.limit_1h > 360:
+                logger.debug('limit_1h too big: '+ str(self.limit_1h) + ' using default')
+                self.limit_1h = 360
+            self.limit_1d = (this_minute.date() - ltsmonth.date()).days + 1
+            if self.limit_1d > 62:
+                logger.debug('limit_1d too big: '+ str(self.limit_1d) + ' using default')
+                self.limit_1d = 62
+        logger.info('limit_1m:' + str(self.limit_1m) + ' limit_1h:' + str(self.limit_1h) + ' limit_1d:' + str(self.limit_1d))
 
