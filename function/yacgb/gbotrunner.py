@@ -41,9 +41,9 @@ class GbotRunner:
     # def setup(self, grid_spacing=0.0426, total_quote=2500, max_ticker=225.00, min_ticker=125, start_ticker=173.27, start_base=7.499, start_quote=1345.80):
     def __init__(self, gbotid=None, exchange=None, market_symbol=None, 
                 # inputs
-                grid_spacing=0.0426, total_quote=2500, max_ticker=225, min_ticker=125, reserve=0,
+                grid_spacing=0, total_quote=0, max_ticker=0, min_ticker=0, reserve=0,
                 # discovered from exchange/account
-                start_ticker=173.27, start_base=7.499, start_quote=1345.80, makerfee=0.0016, takerfee=0.0026, feecurrency='USD'):
+                start_ticker=0, start_base=0, start_quote=0, makerfee=0.005, takerfee=0.005, feecurrency='USD'):
         #RESET
         #Gbot.delete_table()
         

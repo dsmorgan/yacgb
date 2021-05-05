@@ -9,6 +9,7 @@ import logging
 from time import time, sleep
 
 from yacgb.util import get_os_env
+from yacgb.ohlcv_sync import save_candles
 from model.market import Market
 from model.ohlcv import OHLCV
 
@@ -18,9 +19,8 @@ market_symbol = get_os_env('MARKET_SYMBOL', required=True)
 
 ## END
 
-
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # load the configured exchange from ccxt, load_markets is needed to initialize
 myexch = eval ('ccxt.%s ()' % exchange)
@@ -29,11 +29,8 @@ myexch.load_markets()
 
 
 def lambda_handler(event, context):
-    #reset, use environmental variable? or some other event?
-    #Market.delete_table()
-    #OHLCV.delete_table()
-    #exit()
-        
+
+    #TODO refactor these out
     # Create tables in dynamodb if they don't exist already
     if not Market.exists():
         Market.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
@@ -46,6 +43,8 @@ def lambda_handler(event, context):
     thisminute = nowdt.replace(second=0, microsecond=0)
   
     # If this is the 1st time we've attempted to get this exchange + market_symbol, then save a table entry w/ some details
+    
+    #TODO refactor these out
     try:
         exchange_item = Market.get(exchange, market_symbol)
     except Market.DoesNotExist:
@@ -70,6 +69,8 @@ def lambda_handler(event, context):
     ltsday=None
     ltsmonth=None
     
+    
+    #TODO refactor these out
     if exchange_item.last_timestamp == None:
         # New entry, set defaults
         limit_1m = 660
@@ -106,97 +107,21 @@ def lambda_handler(event, context):
     timeframe='1m'
     key = exchange+'_'+market_symbol+'_'+timeframe
     candles = myexch.fetchOHLCV(market_symbol, timeframe, limit=limit_1m)
-    # For each 1st field of the response of minute candles, compare to the rounded hour value. If a "0 minute"
-    #  match, then take up to the next 60 entries and place into a single time_item.
-    x = 0
-    max = 60 
-    while x < len(candles):
-        candle_time = datetime.datetime.fromtimestamp(candles[x][0]/1000, tz=timezone.utc)
-        #print ('candle_time', candle_time.strftime('%Y-%m-%d %H:%M:%S'))
-        if (candle_time == candle_time.replace(minute=0, second=0, microsecond=0)):
-            #create new entry
-            ts = candle_time.strftime('%Y-%m-%d %H:%M:%S')
-            try:
-                time_item = OHLCV.get(key, candles[x][0])
-                time_item.update(actions=[OHLCV.array.set(candles[x:x+max]), OHLCV.last.set(str(nowdt))])
-                #print("update", ts, int(candle_time.timestamp()*1000), candles[x][0], x, x+max, "actual", len(candles[x:x+max]))
-                logger.info('U:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' '+ str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
-            except OHLCV.DoesNotExist:
-                time_item = OHLCV(key, candles[x][0], timestamp_st=ts, array=candles[x:x+max], last=str(nowdt))
-                #print("new", ts, int(candle_time.timestamp()*1000), candles[x][0], x, x+max, "actual", len(candles[x:x+max]))
-                logger.info('N:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' ' + str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
-            time_item.save()
-            #increment to next block of candles
-            x += max-1
-        # increment to next candle
-        x+=1
+    save_candles(exchange, market_symbol, timeframe, nowdt, candles)
 
-    
-    
     # Get hour timeframe OHLCV candles data, grouped per day in a table entry
     timeframe='1h'
     key = exchange+'_'+market_symbol+'_'+timeframe
     candles = myexch.fetchOHLCV(market_symbol, timeframe, limit=limit_1h)
-    # For each 1st field of the response of minute candles, compare to the rounded hour value. If a "0 hour"
-    #  match, then take up to the next 24 entries and place into a single time_item.
-    x = 0
-    max = 24
-    while x < len(candles):
-        candle_time = datetime.datetime.fromtimestamp(candles[x][0]/1000, tz=timezone.utc)
-        #print ('candle_time', candle_time.strftime('%Y-%m-%d %H:%M:%S'))
-        if (candle_time == candle_time.replace(hour=0, minute=0, second=0, microsecond=0)):
-            #create new entry
-            #print (candle_time, 'equal to', candles[x][0]/1000)
-            ts = candle_time.strftime('%Y-%m-%d %H:%M:%S')
-            try:
-                time_item = OHLCV.get(key, candles[x][0])
-                time_item.update(actions=[OHLCV.array.set(candles[x:x+max]), OHLCV.last.set(str(nowdt))])
-                #print("update", ts, candles[x][0], x, x+max, "actual", len(candles[x:x+max]))
-                logger.info('U:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' ' + str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
-            except OHLCV.DoesNotExist:
-                time_item = OHLCV(key, candles[x][0], timestamp_st=ts, array=candles[x:x+max], last=str(nowdt))
-                #print("new", ts, candles[x][0], x, x+max, "actual", len(candles[x:x+max]))
-                logger.info('N:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' ' + str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
-            time_item.save()
-            ##exit()
-            #increment to next block of candles
-            x += max-1
-        # increment to next candle
-        x+=1
-
-    
+    save_candles(exchange, market_symbol, timeframe, nowdt, candles)
 
     # Get day timeframe OHLCV candles data, grouped per month on a table entry
     timeframe='1d'
     key = exchange+'_'+market_symbol+'_'+timeframe
     candles = myexch.fetchOHLCV(market_symbol, timeframe, limit=limit_1d)
-    # For each 1st field of the response of minute candles, compare to the rounded hour value. If a "1st day of month"
-    #  match, then take up to the next 24 entries and place into a single time_item.
-    x = 0
-    max = 365 # we should never use this value, since the number of days varies per month we need to dynmaically change.
-    while x < len(candles):
-        candle_time = datetime.datetime.fromtimestamp(candles[x][0]/1000, tz=timezone.utc)
-        #print ('candle_time', candle_time.strftime('%Y-%m-%d %H:%M:%S'))
-        if (candle_time == candle_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)):
-            #create new entry
-            ts = candle_time.strftime('%Y-%m-%d %H:%M:%S')
-            max = monthrange(candle_time.month, candle_time.month)[1]
-            try:
-                time_item = OHLCV.get(key, candles[x][0])
-                time_item.update(actions=[OHLCV.array.set(candles[x:x+max]), OHLCV.last.set(str(nowdt))])
-                #print("update", ts, x, x+max, "actual", len(candles[x:x+max]))
-                logger.info('U:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' ' + str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
-            except OHLCV.DoesNotExist:
-                time_item = OHLCV(key, candles[x][0], timestamp_st=ts, array=candles[x:x+max], last=str(nowdt))
-                #print("new", ts, x, x+max, "actual", len(candles[x:x+max]))
-                logger.info('N:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' ' + str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
-            time_item.save()
-            #increment to next block of candles
-            x += max-1
-        # increment to next candle
-        x+=1
+    save_candles(exchange, market_symbol, timeframe, nowdt, candles)
     
-    # This needs to happen after the OHLCV entries have all been collected
+    # This needs to happen after the OHLCV entries have all been collected, to save the last_timestamp
     exchange_item.save()
     return (0)
     
