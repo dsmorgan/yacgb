@@ -9,3 +9,4 @@ pytz==2021.1
 requests==2.25.1
 urllib3==1.26.3
 jsonpickle==2.0.0
+ssm-cache==2.10
