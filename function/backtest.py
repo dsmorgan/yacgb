@@ -9,26 +9,24 @@ import os
 import sys
 
 #from model.orders import Orders
+from yacgb.awshelper import yacgb_aws_ps
 from yacgb.lookup import OrderBookLookup
 from yacgb.bdt import BacktestDateTime
 from yacgb.gbotrunner import GbotRunner
-from yacgb.util import base_symbol, quote_symbol, event2config, get_os_env, configsetup
+from yacgb.util import base_symbol, quote_symbol, event2config, configsetup
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Environmental passed comfiguration
-exchange = get_os_env('EXCHANGE', required=False)
-market_symbol = get_os_env('MARKET_SYMBOL', required=False)
-api_key = get_os_env('API_KEY', required=False)
-secret = get_os_env('SECRET', required=False, encrypted=True)
+#AWS parameter store usage is optional, and can be overridden with environment variables
+psconf=yacgb_aws_ps()
 
-
-def backtest(event, context):
+def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
+
     #load the configuration to use for backtest from environment variables and event input
-    config = event2config(event, exchange, market_symbol)
-    #grab some things from the config
+    config = event2config(event, psconf.exch, must_match=True)
+    #grab some things from the psconfig
     bs = base_symbol(config['market_symbol'])
     qs = quote_symbol(config['market_symbol'])
     start = BacktestDateTime(config['backtest_start'])
@@ -43,10 +41,11 @@ def backtest(event, context):
     #exit()
     # test for fetchBalance
     if config['live_balance']:
+        ####
         myexch = eval ('ccxt.%s ()' % config['exchange'])
-        myexch.apiKey = api_key
-        myexch.secret = secret
-        myexch.enableRateLimit = True
+        myexch.apiKey = psconf.exch_apikey[config['exchange']]
+        myexch.secret = psconf.exch_secret[config['exchange']]
+        myexch.enableRateLimit = False
         myexch.load_markets()
         
         # Get makerfee and feecurrency
@@ -97,7 +96,7 @@ def backtest(event, context):
                     makerfee=config['makerfee'], takerfee=config['takerfee'], feecurrency=config['feecurrency'])
     
     while end.laterthan(start):
-        #print (start.dtshour())
+        logging.info(start.dtshour())
         #TODO: we need to pass the timestamp along with the price, so that the timestamp can be captured with the buy/sell
         lookup.getcandle(stime=start.dtshour())
         x.next_ticker(lookup.open)
@@ -132,4 +131,4 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as json_file:
         event = json.load(json_file)
 
-    print (backtest(event, None))
+    print (lambda_handler(event, None))

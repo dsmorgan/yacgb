@@ -16,13 +16,12 @@ from model.ohlcv import OHLCV
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-#AWS parameter store usage is optional, and can be overriden with environment variables
-#TODO: the 2nd level name in the parameter store hierachy should be configurable via environment variables
-conf=yacgb_aws_ps()
+#AWS parameter store usage is optional, and can be overridden with environment variables
+psconf=yacgb_aws_ps()
 
-# load the configured exchange from ccxt, load_markets is needed to initialize
+# load the sconfigured exchange from ccxt, load_markets is needed to initialize
 myexch = {}
-for e in conf.exch:
+for e in psconf.exch:
     myexch[e] = eval ('ccxt.%s ()' % e)
     myexch[e].enableRateLimit = False
     myexch[e].load_markets()
@@ -32,16 +31,16 @@ def lambda_handler(event, context):
     #TODO refactor these out
     # Create tables in dynamodb if they don't exist already
     if not Market.exists():
-        Market.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
+        Market.create_table(read_capacity_units=2, write_capacity_units=2, wait=True)
         logger.info('Created Dynamodb table Market')
     if not OHLCV.exists():
-        OHLCV.create_table(read_capacity_units=5, write_capacity_units=5, wait=True)   
+        OHLCV.create_table(read_capacity_units=10, write_capacity_units=10, wait=True)   
         logger.info('Created Dynamodb table OHLCV')
   
     nowdt = datetime.datetime.now(timezone.utc)  
     thisminute = nowdt.replace(second=0, microsecond=0)
     
-    for x in conf.market_list:
+    for x in psconf.market_list:
         exchange = x.split(':', 1)[0]
         market_symbol = x.split(':', 1)[1]
         logger.info("syncing %s %s" %(exchange, market_symbol))

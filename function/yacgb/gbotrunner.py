@@ -240,8 +240,8 @@ class GbotRunner:
                 total_buy_b += g.quote_step
                 totalq += g.quote_step
                 totalb += g.buy_base_quantity
-            logger.info("step %d ticker %.2f (%.2f) buybase %.8f sellbase %.8f [take %.2f/%.2f] %s %.2f <%d/%d>" % (g.step, g.ticker, g.quote_step, 
-                                    g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.mode, g.sell_base_quantity, g.buy_count, g.sell_count))
+            logger.info(">%d %s %.2f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f" % (g.step, g.mode, g.ticker, g.quote_step, 
+                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.sell_base_quantity))
             # reset next step
             last_step = g.ticker
         logger.info("Theoretical: totalq %.2f totalb %.8f @ %.2f = %.2f" % (totalq, totalb, self.gbot.start_ticker, self.gbot.start_ticker*totalb)) 
@@ -291,7 +291,7 @@ class GbotRunner:
                     exit()
             else:
                 # OK, do nothing. Plenty of quote too
-                print ("Extra: ", self.gbot.start_base - total_sell_q, " quote, about ", (self.gbot.start_base - total_sell_q)*self.gbot.start_ticker, " base")
+                logger.info("Extra: %f quote, about %f base" % (self.gbot.start_base - total_sell_q,  (self.gbot.start_base - total_sell_q)*self.gbot.start_ticker))
             
         self.gbot.quote_balance = extra_q + self.gbot.start_quote - total_buy_b
         self.gbot.base_balance = extra_b + self.gbot.start_base - total_sell_q
@@ -311,8 +311,8 @@ class GbotRunner:
         total_q = self.gbot.quote_balance
     
         for g in self.grid_array:
-            logger.info("%d ticker %.2f (%.2f) buybase %.8f sellbase %.8f [take %.2f/%.2f] %s %.2f <%d/%d> %s" % (g.step, g.ticker, g.quote_step, g.buy_base_quantity, g.sell_quote_quantity, 
-                                                                    g.take, g.step_take, g.mode, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
+            logger.info(">%d %s %.2f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f" % (g.step, g.mode, g.ticker, g.quote_step, 
+                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.sell_base_quantity))
             if g.mode == 'buy':
                 # add up the quote
                 total_q += g.quote_step

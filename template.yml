@@ -25,7 +25,7 @@ Resources:
   backtest:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: backtest.backtest
+      Handler: backtest.lambda_handler
       Runtime: python3.8
       CodeUri: function/.
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
@@ -41,7 +41,7 @@ Resources:
   liveinit:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: liveinit.liveinit
+      Handler: liveinit.lambda_handler
       Runtime: python3.8
       CodeUri: function/.
       Description: Setup a new gbot running against a live account on an exchange
@@ -57,7 +57,7 @@ Resources:
   liverun:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: liverun.liverun
+      Handler: liverun.lambda_handler
       Runtime: python3.8
       CodeUri: function/.
       Description: Run a gbot periodically to execute new trades based on its configuration

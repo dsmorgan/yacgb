@@ -11,29 +11,28 @@ import sys
 #from model.orders import Orders
 #from yacgb.lookup import OrderBookLookup
 #from yacgb.bdt import BacktestDateTime
+from yacgb.awshelper import yacgb_aws_ps
 from yacgb.gbotrunner import GbotRunner
-from yacgb.util import base_symbol, quote_symbol, event2config, get_os_env, configsetup
+from yacgb.util import base_symbol, quote_symbol, event2config, configsetup
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Environmental passed configuration
-exchange = get_os_env('EXCHANGE', required=True)
-market_symbol = get_os_env('MARKET_SYMBOL', required=True)
-api_key = get_os_env('API_KEY', required=True)
-secret = get_os_env('SECRET', required=True, encrypted=True)
+#AWS parameter store usage is optional, and can be overridden with environment variables
+psconf=yacgb_aws_ps()
 
 
-def liveinit(event, context):
+def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
     #load the configuration to use for backtest from environment variables and event input
-    config = event2config(event, exchange, market_symbol)
+    config = event2config(event, psconf.exch, must_match=True)
     
     myexch = eval ('ccxt.%s ()' % config['exchange'])
-    myexch.apiKey = api_key
-    myexch.secret = secret
+    myexch.apiKey = psconf.exch_apikey[config['exchange']]
+    myexch.secret = psconf.exch_secret[config['exchange']]
     myexch.enableRateLimit = False
     myexch.load_markets()
+    
     
     #grab some things from the config
     bs = base_symbol(config['market_symbol'])
@@ -64,14 +63,14 @@ def liveinit(event, context):
         #  associated with this market, so we need to query for all open orders
         qsymbol = None
     else:
-        qsymbol = market_symbol
+        qsymbol = config['market_symbol']
     #TODO: override the config settings of these
     openorders = myexch.fetchOpenOrders(symbol=qsymbol)
     # start_base and start_quote
     config['start_quote'] = quote_total
     config['start_base'] = base_total
     for order in openorders:
-        logger.info ("Open Order: " + order['id'] + ' ' +order['symbol'] + ' ' + str(myexch.amount_to_precision(market_symbol, order['amount'])) + ' @ ' 
+        logger.info ("Open Order: " + order['id'] + ' ' +order['symbol'] + ' ' + str(myexch.amount_to_precision(config['market_symbol'], order['amount'])) + ' @ ' 
                 + str(order['price']) + ' ' + order['type'] + ' ' + order['side'] )
         if (order['type'] == 'limit'):
             if (order['side'] == 'buy'):
@@ -85,10 +84,10 @@ def liveinit(event, context):
                 (config['start_base'], bs, config['start_quote'], qs))
                     
     # Get makerfee and feecurrency
-    market = myexch.market(market_symbol)
+    market = myexch.market(config['market_symbol'])
     # Get start_ticker - in the case of live, use the current last ticker. But for backtrace you need to use the 1st ticker
-    fticker =  myexch.fetchTicker(market_symbol)
-    logging.info ("market %s: last %f makerfee %f feecurrency %s" % (market_symbol, fticker['last'], market['maker'], market['quote'])) 
+    fticker =  myexch.fetchTicker(config['market_symbol'])
+    logging.info ("market %s: last %f makerfee %f feecurrency %s" % (config['market_symbol'], fticker['last'], market['maker'], market['quote'])) 
     
     # create new Gbot
 
@@ -103,7 +102,7 @@ def liveinit(event, context):
         
 
     #Grab the last order before we setup new orders, to borrow the timestamp
-    closedorders = myexch.fetchClosedOrders(symbol=market_symbol,limit=1)
+    closedorders = myexch.fetchClosedOrders(symbol=config['market_symbol'],limit=1)
     if len(closedorders) < 1:
         x.gbot.last_order_ts = 0
     else:
@@ -117,15 +116,15 @@ def liveinit(event, context):
     for gridstep in x.grid_array:
         if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
             logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
-            gridorder = myexch.createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
-            logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
-            gridstep.ex_orderid=exchange + '_' + gridorder['id']
+            gridorder = myexch.createLimitBuyOrder (config['market_symbol'], gridstep.buy_base_quantity, gridstep.ticker)
+            logging.info("exchange %s id %s type %s side %s" % (config['exchange'], gridorder['id'], gridorder['type'], gridorder['side']))
+            gridstep.ex_orderid=config['exchange'] + '_' + gridorder['id']
             x.save()
         elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
             logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
-            gridorder = myexch.createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
-            logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
-            gridstep.ex_orderid=exchange + '_' + gridorder['id']
+            gridorder = myexch.createLimitSellOrder (config['market_symbol'], gridstep.sell_quote_quantity, gridstep.ticker)
+            logging.info("exchange %s id %s type %s side %s" % (config['exchange'], gridorder['id'], gridorder['type'], gridorder['side']))
+            gridstep.ex_orderid=config['exchange'] + '_' + gridorder['id']
             x.save()
             
     x.totals()
@@ -155,7 +154,7 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as json_file:
         event = json.load(json_file)
     
-    print (liveinit(event, None))
+    print (lambda_handler(event, None))
  
 
     

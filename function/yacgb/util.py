@@ -42,17 +42,17 @@ def exists_or_default(key, d, default):
     else:
         return (default)
             
-def event2config(e, exch, mark_sym, must_match=False):
+def event2config(e, exch_dict, must_match=False):
     conf = {}
     #"exchange": "kraken",
-    conf['exchange'] = exists_or_default('exchange', e, exch)
-    if (must_match and e['exchange'] != exch):
-        logger.critical("exchange in event config doesn't match environment %s::%s" % (e['exchange'], exch))
+    conf['exchange'] = exists_or_default('exchange', e, "not_set")
+    if (conf['exchange']=="not_set" or (must_match and not conf['exchange'] in exch_dict)):
+        logger.critical("exchange in event config doesn't match environment %s::%s" % (conf['exchange'], str(exch_dict.keys())))
         exit()
     #"market_symbol": "LTC/USD", 
-    conf['market_symbol'] = exists_or_default('market_symbol', e, exch)
-    if (must_match and e['market_symbol'] != mark_sym):
-        logger.critical("market_symbol in event config doesn't match environment %s::%s" % (e['market_symbol'], exch))
+    conf['market_symbol'] = exists_or_default('market_symbol', e, "not_set")
+    if (conf['market_symbol']=="not_set" or (must_match and not conf['market_symbol'] in exch_dict[conf['exchange']])):
+        logger.critical("market_symbol in event config doesn't match environment %s::%s" % (conf['market_symbol'], str(exch_dict[conf['exchange']])))
         exit()
     #"grid_spacing": 0.05, 
     conf['grid_spacing'] = exists_or_default('grid_spacing', e, 0.04)

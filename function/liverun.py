@@ -11,33 +11,37 @@ import sys
 from model.orders import Orders
 #from yacgb.lookup import OrderBookLookup
 #from yacgb.bdt import BacktestDateTime
+from yacgb.awshelper import yacgb_aws_ps
 from yacgb.gbotrunner import GbotRunner
-from yacgb.util import base_symbol, quote_symbol, get_os_env
+from yacgb.util import base_symbol, quote_symbol
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Environmental passed comfiguration
-exchange = get_os_env('EXCHANGE', required=True)
-market_symbol = get_os_env('MARKET_SYMBOL', required=True)
-api_key = get_os_env('API_KEY', required=True)
-secret = get_os_env('SECRET', required=True, encrypted=True)
-gbotid = get_os_env('GBOTID', required=True)
+#AWS parameter store usage is optional, and can be overridden with environment variables
+psconf=yacgb_aws_ps()
 
-myexch = eval ('ccxt.%s ()' % exchange)
-myexch.apiKey = api_key
-myexch.secret = secret
-myexch.enableRateLimit = False
-myexch.load_markets()
+myexch = {}
+for e in psconf.exch:
+    myexch[e] = eval ('ccxt.%s ()' % e)
+    myexch[e].enableRateLimit = False
+    myexch[e].apiKey = psconf.exch_apikey[e]
+    myexch[e].secret = psconf.exch_secret[e]
+    myexch[e].load_markets()
 
 
-def liverun(event, context):
+def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
     global myexch
+    global psconf
+
+    #load Gbot
+    x = GbotRunner(gbotid=psconf.gbotids[0])
+    exchange=x.gbot.exchange
+    market_symbol=x.gbot.market_symbol
+    
     bs = base_symbol(market_symbol)
     qs = quote_symbol(market_symbol)
-    #load Gbot
-    x = GbotRunner(gbotid=gbotid)
 
 
     #fetchClosedOrders([symbol[, since[, limit[, params]]]])
@@ -55,7 +59,7 @@ def liverun(event, context):
     #'OS63K7-6I4HL-4HIFIS'
 
     #TODO use the last timestamp from the Gbot to determine the right since to use
-    corders = myexch.fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
+    corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
     logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
     
     step_list=[]
@@ -92,13 +96,13 @@ def liverun(event, context):
     for gridstep in x.grid_array:
         if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
             logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
-            gridorder = myexch.createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
+            gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
             logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
             gridstep.ex_orderid=exchange + '_' + gridorder['id']
             x.save()
         elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
             logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
-            gridorder = myexch.createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
+            gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
             logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
             gridstep.ex_orderid=exchange + '_' + gridorder['id']
             x.save()
@@ -128,7 +132,7 @@ if __name__ == "__main__":
     error_count=0
     while True:
         try:
-            logging.info(liverun(None, None))
+            logging.info(lambda_handler(None, None))
         except Exception:
             logging.exception("Fatal error in main loop")
             error_count+=1
