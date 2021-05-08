@@ -4,7 +4,6 @@ from base64 import b64decode
 from ssm_cache import SSMParameterGroup
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 def decrypt_environ(enc_environ):
@@ -65,7 +64,7 @@ class yacgb_aws_ps:
     def collect(self):
         self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env)
         try:
-            self.gbotids = self.configgrp.parameter('/gbotids')
+            self.gbotids = self.configgrp.parameter('/gbotids').value
         except:
             self.gbotids.append('not_set')
         

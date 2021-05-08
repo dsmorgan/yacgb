@@ -311,8 +311,8 @@ class GbotRunner:
         total_q = self.gbot.quote_balance
     
         for g in self.grid_array:
-            logger.info(">%d %s %.2f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f" % (g.step, g.mode, g.ticker, g.quote_step, 
-                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.sell_base_quantity))
+            logger.info(">%d %s %.2f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f %s" % (g.step, g.mode, g.ticker, g.quote_step, 
+                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.sell_base_quantity, g.ex_orderid))
             if g.mode == 'buy':
                 # add up the quote
                 total_q += g.quote_step

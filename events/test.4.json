@@ -1,0 +1,18 @@
+{
+  "exchange": "kraken",
+  "market_symbol": "LTC/USD",  
+  "grid_spacing": 0.02, 
+  "total_quote": 700, 
+  "max_ticker": 355, 
+  "min_ticker": 311, 
+  "reserve": 0,
+  "live_balance": "False",
+  "start_base": 0, 
+  "start_quote": 3000, 
+  "makerfee": 0.0026, 
+  "takerfee": 0.0016, 
+  "feecurrency": "USD",
+  "backtest_start": "20210507 19:00",
+  "backtest_end": "20210508 03:00",
+  "backtest_timeframe": "1h"
+}

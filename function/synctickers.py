@@ -40,10 +40,11 @@ def lambda_handler(event, context):
     nowdt = datetime.datetime.now(timezone.utc)  
     thisminute = nowdt.replace(second=0, microsecond=0)
     
+    logger.info("exchange:market %s" % str(psconf.market_list))
     for x in psconf.market_list:
         exchange = x.split(':', 1)[0]
         market_symbol = x.split(':', 1)[1]
-        logger.info("syncing %s %s" %(exchange, market_symbol))
+        logger.debug("syncing %s %s" %(exchange, market_symbol))
  
         ####
         # If this is the 1st time we've attempted to get this exchange + market_symbol, then save a table entry w/ some details
