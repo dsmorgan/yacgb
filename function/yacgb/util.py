@@ -31,7 +31,14 @@ def get_os_env(env, required=True, encrypted=False):
     
     
 def better_bool(s):
-    if s.lower() in ['true', '1', 'y', 'yes']:
+    if isinstance(s, bool):
+        return s
+    elif isinstance(s, int):
+        if s == 1:
+            return True
+        else:
+            return False
+    if isinstance(s, str) and s.lower() in ['true', '1', 'y', 'yes']:
         return (True)
     else:
         return (False)
@@ -65,7 +72,7 @@ def event2config(e, exch_dict, must_match=False):
     #"reserve": 0,
     conf['reserve'] = exists_or_default('reserve', e, 0.0)
     #"live_balance": "False",
-    conf['live_balance'] = better_bool(exists_or_default('live_balance', e, "False"))
+    conf['live_balance'] = better_bool(exists_or_default('live_balance', e, False))
     #"start_base": 0,
     conf['start_base'] = exists_or_default('start_base', e, 0.0)
     #"start_quote": 1100, 
@@ -93,10 +100,11 @@ def event2config(e, exch_dict, must_match=False):
     conf['stop_loss_precent_min'] = exists_or_default('stop_loss_precent_min', e, None)
     conf['take_profit'] = exists_or_default('take_profit', e, None)
     conf['take_profit_percent_max'] = exists_or_default('take_profit_percent_max', e, None)
-    
+    conf['init_market_order'] = better_bool(exists_or_default('init_market_order', e, False))
     return (conf)
     
 def configsetup(c, start_ticker):
+    c['start_ticker'] = start_ticker
     if c['max_percent_start']:
         c['max_ticker'] = start_ticker * (1+c['max_percent_start'])
     if c['min_percent_start']:

@@ -41,29 +41,3 @@ class BacktestDateTime:
     def laterthan(self, anotherbdt=None):
         return(self.t > anotherbdt.t)
         
-
-
-if __name__ == "__main__":
-    try:
-        x = BacktestDateTime()
-        y = BacktestDateTime('20210317 21:00')
-        print (x.tsmin())
-        print (x.tstenmin())
-        print (x.tshour())
-        print (x.dtsmin())
-        print (y.dtshour())
-        x.addmin()
-        x.addhour()
-        print (x.tsmin())
-        print (x.tstenmin())
-        print (x.tshour()) 
-        print (x.dtsmin())
-        print (x.dtshour())
-        print (y.tsmin())
-
-        print (y.laterthan(x))
-        print (x.laterthan(y))
-        
-        
-    except KeyboardInterrupt:
-        sys.exit(0)

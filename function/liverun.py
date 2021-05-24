@@ -7,6 +7,7 @@ from datetime import timezone
 import logging
 import os
 import sys
+import random
 
 from model.orders import Orders
 #from yacgb.lookup import OrderBookLookup
@@ -24,9 +25,10 @@ psconf=yacgb_aws_ps()
 myexch = {}
 for e in psconf.exch:
     myexch[e] = eval ('ccxt.%s ()' % e)
-    myexch[e].enableRateLimit = False
     myexch[e].apiKey = psconf.exch_apikey[e]
     myexch[e].secret = psconf.exch_secret[e]
+    myexch[e].password = psconf.exch_password[e]
+    myexch[e].enableRateLimit = False
     myexch[e].load_markets()
 
 
@@ -35,6 +37,7 @@ def lambda_handler(event, context):
     global myexch
     global psconf
     
+    random_shuffle(psconf.gbotids)
     response = {}
     response['gbotids'] = psconf.gbotids
     logger.info(response)
@@ -47,21 +50,11 @@ def lambda_handler(event, context):
         
         bs = base_symbol(market_symbol)
         qs = quote_symbol(market_symbol)
+        
+        #check if active, if not then skip
+        
+        #check the current ticker price, or perhaps the last ticker recorded to see if we've dropped above the take_profit or below the stop_loss.
     
-    
-        #fetchClosedOrders([symbol[, since[, limit[, params]]]])
-        #>>> corders = myexch.fetchClosedOrders(market_symbol, since=1618235374000)
-        #>>> corders
-        #[{'id': 'OS63K7-6I4HL-4HIFIS', 'clientOrderId': '0', 'info': {'id': 'OS63K7-6I4HL-4HIFIS', 'refid': None, 'userref': 0, 'status': 'closed', 
-        #'reason': None, 'opentm': 1618235374.1276, 'closetm': 1618239581.8319, 'starttm': 0, 'expiretm': 0, 'descr': {'pair': 'LTCUSD', 'type': 'buy', 
-        #'ordertype': 'limit', 'price': '246.11', 'price2': '0', 'leverage': 'none', 'order': 'buy 2.00000000 LTCUSD @ limit 246.11', 'close': ''}, 
-        #'vol': '2.00000000', 'vol_exec': '2.00000000', 'cost': '492.22', 'fee': '0.78', 'price': '246.11', 'stopprice': '0.00000', 'limitprice': 
-        #'0.00000', 'misc': '', 'oflags': 'fciq'}, 'timestamp': 1618235374127, 'datetime': '2021-04-12T13:49:34.127Z', 'lastTradeTimestamp': None, 
-        #'status': 'closed', 'symbol': 'LTC/USD', 'type': 'limit', 'timeInForce': None, 'postOnly': None, 'side': 'buy', 'price': 246.11, 'stopPrice': 0.0, 
-        #'cost': 492.22, 'amount': 2.0, 'filled': 2.0, 'average': 246.11, 'remaining': 0.0, 'fee': {'cost': 0.78, 'rate': None, 'currency': 'USD'}, 
-        #'trades': None}]
-        #>>> corders[0]['id']
-        #'OS63K7-6I4HL-4HIFIS'
     
         #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
         corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
@@ -70,24 +63,28 @@ def lambda_handler(event, context):
         step_list=[]
         reset_list=[]
         
+        #Look at closed orders, and match against what is in gbot
         for corder in corders:
-            #logger.info("closed order: %s, timestamp: %d" % (corder['id'], corder['timestamp']))
+            logger.debug("closed order: %s, timestamp: %d" % (corder['id'], corder['timestamp']))
             matched_step = x.check_id(exchange, corder['id'])
 
             if matched_step != None:
                 if corder['status'] == 'canceled':
+                    #add it to the list to reset the order
                     reset_list.append(matched_step)
                     logger.warning("Canceled order (%d), resetting: %s %s" % (matched_step, exchange, corder['id']))
                     #setting this grid to None will trigger it to be reset
                     x.grid_array[matched_step].ex_orderid = None
                     #don't do anything else with this step, next order
                 else:
-                    #add it to list to reset grid
+                    #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
                     step_list.append(matched_step)
+                    ###This should be seperated to a class
                     if not Orders.exists():
                         Orders.create_table(read_capacity_units=3, write_capacity_units=3, wait=True)
                         logger.info('Created Dynamodb table Orders')
                     #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
+                    # Problem is, this isn't consistent between exchanges
                     ord = Orders(exchange+'_'+corder['id'], exchange=exchange, accountid=None, gbotid=x.gbot.gbotid, market_symbol=corder['symbol'], timestamp=corder['timestamp'], 
                         timestamp_st=datetime.datetime.fromtimestamp(corder['timestamp']/1000, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
                         side=corder['side'], type=corder['type'], status=corder['status'], cost=corder['cost'], price=corder['price'], amount=corder['amount'], 
@@ -102,13 +99,20 @@ def lambda_handler(event, context):
         ## assume that they come in the right order for now TODO, these are NOT ordered
         
         # apply x.reset() against each grid (step_list) that matched an order, ensure that resets the ex_orderid too
+        # This reconfigures the grid, moving the current "NONE" grid either up or down and the sell/buy limits are not
         for step in step_list:
             x.reset(x.grid_array[step].ticker)
             
-        #TODO: We should get the current ticker and double check that we aren't too far off from the grid
+        #TODO: We should get the current ticker and double check that we aren't too far off from the grid step
+        
+        #TODO: Check if the status is now 'stop_loss' or 'take_profit', ensure that all open orders are canceled. 
+        ## If stop_loss, then we also need to add up all the base quantity and market sell it.
+        ## Each time, we should check to make sure that all orders have been canceled safely. 
         
         # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders
         # Setup each Buy and Sell Limit
+        
+        # This can be mostly pushed into gbotrunner
         for gridstep in x.grid_array:
             if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
                 logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
@@ -124,6 +128,8 @@ def lambda_handler(event, context):
                 x.save()
         
         #TODO: set timestamp as well, so to check since last timestamp found. Or is that even possible?
+        
+        #Only print the grid if we've changed something.
         x.totals()
         
     run_end = datetime.datetime.now(timezone.utc)

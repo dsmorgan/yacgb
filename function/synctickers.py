@@ -3,10 +3,10 @@
 import ccxt
 import datetime
 from datetime import timezone
-from calendar import monthrange
 import os
 import logging
 import time
+import random
 
 from yacgb.awshelper import yacgb_aws_ps
 from yacgb.ohlcv_sync import save_candles, candle_limits
@@ -40,6 +40,7 @@ def lambda_handler(event, context):
     nowdt = datetime.datetime.now(timezone.utc)  
     thisminute = nowdt.replace(second=0, microsecond=0)
     
+    random.shuffle(psconf.market_list)
     logger.info("exchange:market %s" % str(psconf.market_list))
     for x in psconf.market_list:
         exchange = x.split(':', 1)[0]
@@ -78,6 +79,7 @@ def lambda_handler(event, context):
         exchange_item.last_timestamp = int(thisminute.timestamp())
         exchange_item.last = str(nowdt)
      
+        #TODO: refactor this as a loop     
         # Get minute timeframe OHLCV candles data, grouped per hour in a table entry
         timeframe='1m'
         key = exchange+'_'+market_symbol+'_'+timeframe

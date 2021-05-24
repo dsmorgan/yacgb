@@ -3,21 +3,16 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Yet Another Crypto Grid Bot (for AWS Lambda)
 
-Globals:
-  Function:
-    MemorySize: 256
-    Runtime: python3.8
-    Timeout: 30
-    CodeUri: function/.
-    Layers:
-      - !Ref libs
 Resources:
   synctickers:
     Type: AWS::Serverless::Function
     Properties:
       Handler: synctickers.lambda_handler
+      Runtime: python3.8
+      CodeUri: function/.
       Description: Call a crypto exchange, pull OHLCV data and put in dynamodb
       Timeout: 20
+      MemorySize: 256
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -25,11 +20,17 @@ Resources:
         - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
       Tracing: Active
+      Layers:
+        - !Ref libs
   backtest:
     Type: AWS::Serverless::Function
     Properties:
       Handler: backtest.lambda_handler
+      Runtime: python3.8
+      CodeUri: function/.
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
+      Timeout: 30
+      MemorySize: 256
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -37,11 +38,17 @@ Resources:
         - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
       Tracing: Active
+      Layers:
+        - !Ref libs
   liveinit:
     Type: AWS::Serverless::Function
     Properties:
       Handler: liveinit.lambda_handler
+      Runtime: python3.8
+      CodeUri: function/.
       Description: Setup a new gbot running against a live account on an exchange
+      Timeout: 30
+      MemorySize: 256
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -49,12 +56,17 @@ Resources:
         - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
       Tracing: Active
+      Layers:
+        - !Ref libs
   liverun:
     Type: AWS::Serverless::Function
     Properties:
       Handler: liverun.lambda_handler
+      Runtime: python3.8
+      CodeUri: function/.
       Description: Run a gbot periodically to execute new trades based on its configuration
-      Timeout: 10
+      Timeout: 20
+      MemorySize: 256
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -62,6 +74,8 @@ Resources:
         - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
       Tracing: Active
+      Layers:
+        - !Ref libs
   libs:
     Type: AWS::Serverless::LayerVersion
     Properties:

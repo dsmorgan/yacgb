@@ -1,3 +1,5 @@
+## https://github.com/dsmorgan/yacgb
+
 import boto3
 import os
 from base64 import b64decode
@@ -17,7 +19,14 @@ def decrypt_environ(enc_environ):
     return(de)
     
 def better_bool(s):
-    if s.lower() in ['true', '1', 'y', 'yes']:
+    if isinstance(s, bool):
+        return s
+    elif isinstance(s, int):
+        if s == 1:
+            return True
+        else:
+            return False
+    if isinstance(s, str) and s.lower() in ['true', '1', 'y', 'yes']:
         return (True)
     else:
         return (False)
@@ -30,6 +39,7 @@ class yacgb_aws_ps:
     exch={}
     exch_apikey={}
     exch_secret={}
+    exch_password={}
     market_list=[]
     gbotids=[]
     
@@ -48,6 +58,7 @@ class yacgb_aws_ps:
             self.exch[ex] = [mktsym]
             self.exch_apikey[ex] = os.environ.get('API_KEY')
             self.exch_secret[ex] = os.environ.get('SECRET')
+            self.exch_password[ex] = os.environ.get('PASSWORD')
             self.__build_market_list()
             gbotid = os.environ.get('GBOTID')
             if gbotid != None:
@@ -72,17 +83,23 @@ class yacgb_aws_ps:
         for e in exchanges:
             if better_bool(e.value):
                 exch_name = e.name.rsplit('/',1)[1]
-                mkts = self.configgrp.parameter('/exchanges/'+exch_name+'/markets')
-                try:
-                    self.exch[exch_name] = mkts.value
-                except:
-                    self.exch[exch_name] = []
-                try:
-                    self.exch_apikey[exch_name] = self.configgrp.parameter('/exchanges/'+exch_name+'/apikey').value
-                    self.exch_secret[exch_name] = self.configgrp.parameter('/exchanges/'+exch_name+'/secret').value
-                except:
-                    self.exch_apikey[exch_name] = 'not_set'
-                    self.exch_secret[exch_name] = 'not_set'
+                self.exch[exch_name] = []
+                self.exch_apikey[exch_name] = 'not_set'
+                self.exch_secret[exch_name] = 'not_set'
+                #Most exchanges don't use password (or passphrase), but at least one (coinbasepro) requires it AND apikey + secret
+                self.exch_password[exch_name] = None
+                params = self.configgrp.parameters('/exchanges/' + exch_name, recursive=False)
+                for p in params:
+                    pname = p.name.rsplit('/',1)[1]
+                    if pname == 'markets':
+                        self.exch[exch_name] = p.value
+                    if pname == 'apikey':
+                        self.exch_apikey[exch_name] = p.value
+                    if pname == 'secret':
+                        self.exch_secret[exch_name] = p.value
+                    if pname == 'password':
+                        self.exch_password[exch_name] = p.value
+       
         self.__build_market_list()
 
 

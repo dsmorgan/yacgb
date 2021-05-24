@@ -16,5 +16,6 @@ aws ssm put-parameter --name "/yacgb/$ENV/exchanges/coinbasepro" --value "false"
 aws ssm put-parameter --name "/yacgb/$ENV/exchanges/coinbasepro/markets" --value "BTC/USD,ETH/USD,LINK/USD,XLM/USD,STORJ/USD" --type StringList --tags "Key=app,Value=yacgb"
 aws ssm put-parameter --name "/yacgb/$ENV/exchanges/coinbasepro/apikey" --value "<APIKEY_HERE>" --type SecureString --tags "Key=app,Value=yacgb"
 aws ssm put-parameter --name "/yacgb/$ENV/exchanges/coinbasepro/secret" --value "<SECRET_HERE>" --type SecureString --tags "Key=app,Value=yacgb"
+aws ssm put-parameter --name "/yacgb/$ENV/exchanges/coinbasepro/password" --value "<PASSPHRASE_HERE>" --type SecureString --tags "Key=app,Value=yacgb"
 
 aws ssm put-parameter --name "/yacgb/$ENV/gbotids" --value "<EDIT_AFTER_LIVEINIT>" --type StringList --tags "Key=app,Value=yacgb"
