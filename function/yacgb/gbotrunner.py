@@ -25,18 +25,16 @@ class Grid:
         self.ex_orderid = None
 
     
-    def allocate(self, quote_step=0, sell_quantity=0, mode=None, take=0, step_take=0):
+    def allocate(self, quote_step=0, grid_spacing=0, mode=None, take_diff=0, step_take_diff=0):
         self.quote_step = quote_step
         self.buy_base_quantity = self.quote_step/self.ticker
-        self.sell_quote_quantity = sell_quantity
-        self.sell_base_quantity = sell_quantity*self.ticker
+        self.sell_quote_quantity = self.buy_base_quantity*(1+grid_spacing)
+        self.sell_base_quantity = self.sell_quote_quantity*self.ticker
         self.mode = mode
-        self.take = take
-        self.step_take = step_take
+        self.take = take_diff*self.sell_quote_quantity
+        self.step_take = step_take_diff*self.sell_quote_quantity
 
 class GbotRunner:
-    grid_array = []
-    gbot = None
     
     def __init__(self, gbotid=None, config={}, type='live'):
                 #exchange=None, market_symbol=None, 
@@ -46,6 +44,8 @@ class GbotRunner:
                 #start_ticker=0, start_base=0, start_quote=0, makerfee=0.005, takerfee=0.005, feecurrency='USD'):
         #RESET
         #Gbot.delete_table()
+        self.grid_array = []
+        self.gbot = None
         
         if not Gbot.exists():
             Gbot.create_table(read_capacity_units=5, write_capacity_units=5, wait=True)
@@ -68,18 +68,6 @@ class GbotRunner:
                     config=config
                     )
 
-                    #grid_spacing=grid_spacing,
-                    #total_quote=total_quote,
-                    #max_ticker=max_ticker,
-                    #min_ticker=min_ticker,
-                    #reserve=reserve,
-                    #start_base=start_base,
-                    #start_quote=start_quote,
-                    #makerfee=makerfee,
-                    #takerfee=takerfee,
-                    #feecurrency=feecurrency
-    
-            
             logger.info("Created new gbot, gbotid: " + self.gbot.gbotid)
             # initalize new bot
             self.setup()
@@ -199,7 +187,7 @@ class GbotRunner:
         # check max larger then min
         #grid_step = (max_ticker - min_ticker)/(self.grids-1)
         now_ticker = self.gbot.config.min_ticker
-        #track grids above start_ticker
+        # track grids above start_ticker
         sell_count = 0
         sell_quantity = -1
         closest_grid = -1
@@ -208,8 +196,10 @@ class GbotRunner:
         while now_ticker <= self.gbot.config.max_ticker:
             # add a new grid
             self.grid_array.append(Grid(self.gbot.grids, now_ticker))
+            #TODO: This doesn't seem to do anything, delete?
             if now_ticker > self.gbot.config.start_ticker:
                 sell_count += 1
+            # find the closest grid to the current market price, in order to find which grid to mark as NONE   
             if abs(self.gbot.config.start_ticker - now_ticker) < closest:
                 closest = abs(self.gbot.config.start_ticker - now_ticker)
                 closest_grid = self.gbot.grids
@@ -222,6 +212,7 @@ class GbotRunner:
         #use the current ticker to split the quantity to sell at each step
         # TODO: this should instead be sell the previous grid step, close enought for now
         sell_quantity = usable_quote/self.gbot.config.start_ticker/(self.gbot.grids-1) 
+        gs = self.gbot.config.grid_spacing
         
         
         #Determine total step and quote
@@ -232,15 +223,16 @@ class GbotRunner:
         last_step = self.gbot.config.min_ticker
 
         for g in self.grid_array:
+            sell_quantity = g.buy_base_quantity*(1+gs)
             if (closest_grid == g.step):
-                g.allocate(quote_step, sell_quantity, "NONE", 0, (g.ticker-last_step)*sell_quantity)
+                g.allocate(quote_step, gs, "NONE", 0, (g.ticker-last_step))
             elif g.ticker > self.gbot.config.start_ticker:
-                g.allocate(quote_step, sell_quantity, "sell", (g.ticker-self.gbot.config.start_ticker)*sell_quantity, (g.ticker-last_step)*sell_quantity)
+                g.allocate(quote_step, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
                 total_sell_q += g.sell_quote_quantity
                 totalq += g.quote_step
                 totalb += g.buy_base_quantity
             else:
-                g.allocate(quote_step, sell_quantity, "buy", 0, (g.ticker-last_step)*sell_quantity)
+                g.allocate(quote_step, gs, "buy", 0, (g.ticker-last_step))
                 total_buy_b += g.quote_step
                 totalq += g.quote_step
                 totalb += g.buy_base_quantity
@@ -295,8 +287,11 @@ class GbotRunner:
                     exit()
             else:
                 # OK, do nothing. Plenty of quote too
-                logger.info("Extra: %f quote, about %f base" % (self.gbot.start_base - total_sell_q,  (self.gbot.config.start_base - total_sell_q)*self.gbot.config.start_ticker))
+                logger.info("Extra: %f quote, about %f base" % (self.gbot.config.start_base - total_sell_q,  (self.gbot.config.start_base - total_sell_q)*self.gbot.config.start_ticker))
+                ##
             
+            
+        ##TODO: this needs to be an extra function call, to return the actual amounts
         self.gbot.quote_balance = extra_q + self.gbot.config.start_quote - total_buy_b
         self.gbot.base_balance = extra_b + self.gbot.config.start_base - total_sell_q
         logger.info("base_balance %.8f quote_balance %.2f" % (self.gbot.base_balance, self.gbot.quote_balance))
@@ -307,8 +302,7 @@ class GbotRunner:
         #self.start = UnicodeAttribute(null=True)
         #self.last_timestamp = NumberAttribute(null=True)
         #self.last = UnicodeAttribute(null=True)
-        
-        #exit()
+  
     
     def totals(self):
         total_b = self.gbot.base_balance
