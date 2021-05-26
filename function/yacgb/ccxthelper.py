@@ -59,10 +59,10 @@ class BalanceCalc:
 
        
 class CandleTest:
-    high = None
-    low = None
-    last = None
     def __init__(self, ohlcv_array):
+        self.high=None
+        self.low=None
+        self.last=None
         for candle in ohlcv_array:
             if self.high == None or self.high < candle[2]:
                 self.high = candle[2]

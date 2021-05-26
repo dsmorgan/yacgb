@@ -66,12 +66,11 @@ def save_candles(exch, ms, tf, ndt, candles):
 
     
 class candle_limits:
-    #Default values
-    limit_1m = 660
-    limit_1h = 360
-    limit_1d = 62
-    
     def __init__(self, last_ts, this_minute):
+        self.limit_1m = 660
+        self.limit_1h = 360
+        self.limit_1d = 62
+        
         logger.debug("last_ts %s this_minute %s" %(str(last_ts), str(this_minute)))
         if last_ts == None:
             # New entry, set defaults

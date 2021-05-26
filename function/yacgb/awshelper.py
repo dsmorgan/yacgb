@@ -33,17 +33,16 @@ def better_bool(s):
 
 
 class yacgb_aws_ps:
-    bp='yacgb'
-    env=None
-    configgrp=None
-    exch={}
-    exch_apikey={}
-    exch_secret={}
-    exch_password={}
-    market_list=[]
-    gbotids=[]
-    
     def __init__(self, env=None):
+        self.bp='yacgb'
+        self.configgrp=None
+        self.exch={}
+        self.exch_apikey={}
+        self.exch_secret={}
+        self.exch_password={}
+        self.market_list=[]
+        self.gbotids=[]
+        
         if env == None:
             env = os.environ.get('AWS_PS_GROUP')
             if env == None:
@@ -51,6 +50,7 @@ class yacgb_aws_ps:
             else:
                 logger.info("AWS_PS_GROUP found in ENV, using:" + env)
         self.env=env
+        
         ex = os.environ.get('EXCHANGE')
         mktsym = os.environ.get('MARKET_SYMBOL')
         if ex != None and mktsym != None:
