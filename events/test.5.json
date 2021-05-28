@@ -4,7 +4,7 @@
   "grid_spacing": 0.04, 
   "total_quote": 2000, 
   "max_ticker": 405, 
-  "min_ticker": 277.11, 
+  "min_ticker": 285, 
   "reserve": 0,
   "live_balance": "True",
   "start_base": 0, 
@@ -12,7 +12,8 @@
   "makerfee": 0.0026, 
   "takerfee": 0.0016, 
   "feecurrency": "USD",
-  "backtest_start": "20210507 19:00",
-  "backtest_end": "20210510 01:00",
-  "backtest_timeframe": "1h"
+  "backtest_start": "20210501 19:00",
+  "backtest_end": "20210520 01:00",
+  "take_profit": 405.01,
+  "stop_loss": 199
 }

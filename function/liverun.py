@@ -14,7 +14,8 @@ from model.orders import Orders
 #from yacgb.bdt import BacktestDateTime
 from yacgb.awshelper import yacgb_aws_ps
 from yacgb.gbotrunner import GbotRunner
-from yacgb.util import base_symbol, quote_symbol
+from yacgb.util import base_symbol, quote_symbol, orderid
+from yacgb.ccxthelper import CandleTest
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -37,7 +38,7 @@ def lambda_handler(event, context):
     global myexch
     global psconf
     
-    random_shuffle(psconf.gbotids)
+    random.shuffle(psconf.gbotids)
     response = {}
     response['gbotids'] = psconf.gbotids
     logger.info(response)
@@ -51,10 +52,6 @@ def lambda_handler(event, context):
         bs = base_symbol(market_symbol)
         qs = quote_symbol(market_symbol)
         
-        #check if active, if not then skip
-        
-        #check the current ticker price, or perhaps the last ticker recorded to see if we've dropped above the take_profit or below the stop_loss.
-    
     
         #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
         corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
@@ -101,36 +98,62 @@ def lambda_handler(event, context):
         # apply x.reset() against each grid (step_list) that matched an order, ensure that resets the ex_orderid too
         # This reconfigures the grid, moving the current "NONE" grid either up or down and the sell/buy limits are not
         for step in step_list:
-            x.reset(x.grid_array[step].ticker)
+            x.reset(x.grid_array[step].ticker, '*')
             
-        #TODO: We should get the current ticker and double check that we aren't too far off from the grid step
-        
-        #TODO: Check if the status is now 'stop_loss' or 'take_profit', ensure that all open orders are canceled. 
+        #Get the current ticker and double check that we aren't too far off from the grid step
+        fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
+        logger.info("%s %s high %f low %f last %f" % (exchange, market_symbol, fticker.high, fticker.low, fticker.last))
+        if x.test_slortp(fticker.last, '*'):
+            #State has either changed from active, or was already not active
+            x.save()
+            for gridstep in x.grid_array:
+                #cancel each open order
+                if gridstep.ex_orderid != None:
+                    try:
+                        logger.info("%d> canceling order %s" % (gridstep.step, gridstep.ex_orderid))
+                        gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid))
+                        logger.info(str(gridcancel))
+                    except ccxt.OrderNotFound:
+                        logger.warning("%s OrderNotFound" % gridstep.ex_orderid)
+                    gridstep.ex_orderid = None
+                    
+            #additional step for stop_loss to also sell off all
+            if x.gbot.state == 'stop_loss':
+                #TODO: How do we retry this and check that it succeded?
+                x.gbot.state = 'stop_loss_sold_all'
+                logger.info("Stop Loss, Sell All %s (%f)" %(market_symbol, x.gbot.base_balance))
+                sellall = myexch[exchange].createMarketSellOrder(market_symbol, x.gbot.base_balance)
+                logger.info(str(sellall))
+                x.save()
+                
+        #TODO: Check if the state is now 'stop_loss' or 'take_profit', ensure that all open orders are canceled. 
         ## If stop_loss, then we also need to add up all the base quantity and market sell it.
         ## Each time, we should check to make sure that all orders have been canceled safely. 
         
-        # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders
-        # Setup each Buy and Sell Limit
         
-        # This can be mostly pushed into gbotrunner
-        for gridstep in x.grid_array:
-            if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
-                logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
-                gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
-                logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
-                gridstep.ex_orderid=exchange + '_' + gridorder['id']
-                x.save()
-            elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
-                logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
-                gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
-                logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
-                gridstep.ex_orderid=exchange + '_' + gridorder['id']
-                x.save()
+        # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders
+        # Setup each Buy and Sell Limit, if we are still active
+        if x.gbot.state == 'active':
+            # This can be mostly pushed into gbotrunner
+            for gridstep in x.grid_array:
+                if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
+                    logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
+                    gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
+                    logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
+                    gridstep.ex_orderid=exchange + '_' + gridorder['id']
+                    x.save()
+                elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
+                    logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
+                    gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
+                    logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
+                    gridstep.ex_orderid=exchange + '_' + gridorder['id']
+                    x.save()
         
         #TODO: set timestamp as well, so to check since last timestamp found. Or is that even possible?
         
-        #Only print the grid if we've changed something.
-        x.totals()
+        #TODO: Only print the grid if we've changed something.
+        if (len(step_list) + len (reset_list) > 0):
+            x.totals()
         
     run_end = datetime.datetime.now(timezone.utc)
     logger.info('RUN TIME: %s', str(run_end-run_start))

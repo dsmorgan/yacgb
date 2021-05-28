@@ -1,0 +1,19 @@
+{
+  "exchange": "binanceus",
+  "market_symbol": "XLM/USD",  
+  "grid_spacing": 0.02, 
+  "total_quote": 3000, 
+  "max_ticker": 0.4113, 
+  "min_ticker": 0.3113, 
+  "reserve": 0,
+  "live_balance": "False",
+  "start_base": 0, 
+  "start_quote": 3000, 
+  "makerfee": 0.001, 
+  "takerfee": 0.001, 
+  "feecurrency": "USD",
+  "backtest_start": "20210526 19:00",
+  "backtest_end": "20210528 01:00",
+  "take_profit": 0.4411,
+  "stop_loss": 0.3013
+}

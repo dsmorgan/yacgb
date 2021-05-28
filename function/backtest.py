@@ -70,23 +70,19 @@ def lambda_handler(event, context):
     # create a new Gbot
     x = GbotRunner(config=config, type='backtest')
     
-    #backtest run
+    #### backtest run START
     while end.laterthan(start):
-        #TODO: if we pass the time with the ticker, won't need to log this here
-        logging.info(start.dtshour())
-        #TODO: we need to pass the timestamp along with the price, so that the timestamp can be captured with the buy/sell
         lookup.getcandle(stime=start.dtshour())
-        #TODO: pass time w/ ticker
         #TODO: check against stop_loss and take_profit
-        x.next_ticker(lookup.open)
-        x.next_ticker(lookup.low)
-        x.next_ticker(lookup.high)
-        x.next_ticker(lookup.close)
-        x.last_ticker=lookup.close
+        x.backtest(lookup.open, start.dtshour())
+        x.backtest(lookup.low, start.dtshour())
+        x.backtest(lookup.high, start.dtshour())
+        x.backtest(lookup.close, start.dtshour())
         start.addhour()
     x.save()    
-        
     x.totals()
+    #### backtest run END
+    
     run_end = datetime.datetime.now(timezone.utc)
     logging.info('RUN TIME: %s', str(run_end-run_start))
     

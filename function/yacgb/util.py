@@ -11,9 +11,11 @@ logger = logging.getLogger(__name__)
 def base_symbol(ms):
     return (ms.split('/', 1)[0])
     
-    
 def quote_symbol(ms):
     return (ms.split('/', 1)[1])
+    
+def orderid(eo):
+    return (eo.split('_', 1)[1])
 
 def get_os_env(env, required=True, encrypted=False):
     var = None
