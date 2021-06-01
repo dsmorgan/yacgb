@@ -16,6 +16,7 @@ from model.ohlcv import OHLCV
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+logger.info("CCXT version: %", ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
 

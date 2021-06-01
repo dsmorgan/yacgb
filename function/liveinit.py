@@ -19,9 +19,9 @@ from yacgb.ccxthelper import BalanceCalc
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+logger.info("CCXT version: %", ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
-
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
@@ -60,7 +60,7 @@ def lambda_handler(event, context):
     config['start_quote'] = bal.calc_quote_free
     
     #log the translated config applied to the gbot    
-    logging.info ("config: %s" % config)
+    logger.info ("config: %s" % config)
     
     # create new Gbot    
     x = GbotRunner(config=config)
@@ -79,25 +79,25 @@ def lambda_handler(event, context):
     # Setup each Buy and Sell Limit
     for gridstep in x.grid_array:
         if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
-            logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
+            logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
             gridorder = myexch.createLimitBuyOrder (config['market_symbol'], gridstep.buy_base_quantity, gridstep.ticker)
-            logging.info("exchange %s id %s type %s side %s" % (config['exchange'], gridorder['id'], gridorder['type'], gridorder['side']))
+            logger.info("exchange %s id %s type %s side %s" % (config['exchange'], gridorder['id'], gridorder['type'], gridorder['side']))
             gridstep.ex_orderid=config['exchange'] + '_' + gridorder['id']
             x.save()
         elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
-            logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
+            logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
             gridorder = myexch.createLimitSellOrder (config['market_symbol'], gridstep.sell_quote_quantity, gridstep.ticker)
-            logging.info("exchange %s id %s type %s side %s" % (config['exchange'], gridorder['id'], gridorder['type'], gridorder['side']))
+            logger.info("exchange %s id %s type %s side %s" % (config['exchange'], gridorder['id'], gridorder['type'], gridorder['side']))
             gridstep.ex_orderid=config['exchange'] + '_' + gridorder['id']
             x.save()
             
     x.totals()
     run_end = datetime.datetime.now(timezone.utc)
-    logging.info('RUN TIME: %s', str(run_end-run_start))
+    logger.info('RUN TIME: %s', str(run_end-run_start))
     
     response = {}
     response['gbotid'] = x.gbot.gbotid
-    logging.info(response)
+    logger.info(response)
     return (response)
     
 

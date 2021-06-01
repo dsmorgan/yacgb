@@ -16,6 +16,7 @@ class BalanceCalc:
         self.quote_all = fetchBalanceResp[quote_sym]
         logger.info ('quote ' + self.qs + ' ' + str(self.quote_all))
         
+        ##TODO some exchanges only return a base if there is a balance, need to test if exist and assume zero if not
         self.base_total = fetchBalanceResp[base_sym]['total']
         self.base_free = fetchBalanceResp[base_sym]['free']
         self.quote_total = fetchBalanceResp[quote_sym]['total']

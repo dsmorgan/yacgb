@@ -80,6 +80,7 @@ class GbotRunner:
         
     def test_slortp(self, tick, ts=''):
         if self.gbot.state == 'active':
+            #TODO last_ticker is NOT being save in most cases
             self.gbot.last_ticker=tick
             if self.gbot.config.stop_loss != None and self.gbot.config.stop_loss >= tick:
                 self.gbot.state = 'stop_loss'
@@ -126,7 +127,7 @@ class GbotRunner:
         for g in self.grid_array:
             #logger.info("Grid: \n%s" %str(g))
             if g.ex_orderid == exchange + '_' + orderid:
-                logger.info("%d Matched %s" %(g.step, g.ex_orderid))
+                logger.info(">%d Matched %s" %(g.step, g.ex_orderid))
                 return (g.step)
         return (None)
 
@@ -142,6 +143,7 @@ class GbotRunner:
                 if g.ticker == grid_ticker:
                     if g.mode == 'buy':
                         logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
+                        #TODO Need to figure out what base_balance is tracking
                         self.gbot.base_balance += g.buy_base_quantity
                         #subtract the transaction cost from profit
                         self.gbot.total_fees += g.ticker*g.buy_base_quantity*self.gbot.config.makerfee #TODO: what about using actual fee?
@@ -156,6 +158,7 @@ class GbotRunner:
                         g.mode = "NONE"
                     if g.mode == 'sell':
                         logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_quote_quantity, g.ticker, g.ticker*g.sell_quote_quantity))
+                        #TODO Need to figure out what quote_balance is tracking
                         self.gbot.quote_balance += g.ticker*g.sell_quote_quantity
                         self.gbot.total_fees += g.ticker*g.sell_quote_quantity*self.gbot.config.makerfee #TODO: what about using actual fee?
                         self.gbot.profit += g.take - g.ticker*g.sell_quote_quantity*self.gbot.config.makerfee
@@ -264,7 +267,7 @@ class GbotRunner:
             logger.info("Need more: %.2f quote" % need_quote)
             ### Check here if we have enough base for all grids tagged as sell
             if (total_sell_q < self.gbot.config.start_base):
-                logger.info("There is enough extra base: %f, which is about %f quote. Sell some base." % (start_base - total_sell_q, (start_base - total_sell_q)*start_ticker))
+                logger.info("There is enough extra base: %f, which is about %f quote. Sell some base." % (self.gbot.config.start_base - total_sell_q, (self.gbot.config.start_base - total_sell_q)*self.gbot.config.start_ticker))
                 ## Sell base for more quote
                 extra_q = need_quote
                 #This is the amount of base we need to meet the quote requirement

@@ -20,6 +20,7 @@ from yacgb.ccxthelper import CandleTest
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+logger.info("CCXT version: %", ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
 
@@ -82,6 +83,7 @@ def lambda_handler(event, context):
                         logger.info('Created Dynamodb table Orders')
                     #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
                     # Problem is, this isn't consistent between exchanges
+                    ####TODO bug related to fee.cost and fee.currency not always being defined. Where do we get this? Might have to set to zeros for now
                     ord = Orders(exchange+'_'+corder['id'], exchange=exchange, accountid=None, gbotid=x.gbot.gbotid, market_symbol=corder['symbol'], timestamp=corder['timestamp'], 
                         timestamp_st=datetime.datetime.fromtimestamp(corder['timestamp']/1000, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
                         side=corder['side'], type=corder['type'], status=corder['status'], cost=corder['cost'], price=corder['price'], amount=corder['amount'], 
@@ -102,7 +104,7 @@ def lambda_handler(event, context):
             
         #Get the current ticker and double check that we aren't too far off from the grid step
         fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
-        logger.info("%s %s high %f low %f last %f" % (exchange, market_symbol, fticker.high, fticker.low, fticker.last))
+        logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
         if x.test_slortp(fticker.last, '*'):
             #State has either changed from active, or was already not active
             x.save()
@@ -121,6 +123,7 @@ def lambda_handler(event, context):
             if x.gbot.state == 'stop_loss':
                 #TODO: How do we retry this and check that it succeded?
                 x.gbot.state = 'stop_loss_sold_all'
+                #TODO we probably need to get the  amount to sell from adding up all of the sell limits in the grid. base_balance isn't correct
                 logger.info("Stop Loss, Sell All %s (%f)" %(market_symbol, x.gbot.base_balance))
                 sellall = myexch[exchange].createMarketSellOrder(market_symbol, x.gbot.base_balance)
                 logger.info(str(sellall))
@@ -137,15 +140,15 @@ def lambda_handler(event, context):
             # This can be mostly pushed into gbotrunner
             for gridstep in x.grid_array:
                 if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
-                    logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
+                    logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
-                    logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
+                    logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']
                     x.save()
                 elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
-                    logging.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
+                    logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
-                    logging.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
+                    logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']
                     x.save()
         

@@ -19,6 +19,7 @@ from yacgb.ccxthelper import BalanceCalc
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+logger.info("CCXT version: %", ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
 
@@ -65,7 +66,7 @@ def lambda_handler(event, context):
         config['start_quote'] = bal.calc_quote_free
     
     #log the translated config applied to the gbot    
-    logging.info ("config: %s" % config)
+    logger.info ("config: %s" % config)
     
     # create a new Gbot
     x = GbotRunner(config=config, type='backtest')
@@ -73,7 +74,7 @@ def lambda_handler(event, context):
     #### backtest run START
     while end.laterthan(start):
         lookup.getcandle(stime=start.dtshour())
-        #TODO: check against stop_loss and take_profit
+        
         x.backtest(lookup.open, start.dtshour())
         x.backtest(lookup.low, start.dtshour())
         x.backtest(lookup.high, start.dtshour())
@@ -84,12 +85,12 @@ def lambda_handler(event, context):
     #### backtest run END
     
     run_end = datetime.datetime.now(timezone.utc)
-    logging.info('RUN TIME: %s', str(run_end-run_start))
+    logger.info('RUN TIME: %s', str(run_end-run_start))
     
     #Make the response the gbotid that was just created and backtested
     response = {}
     response['gbotid'] = x.gbot.gbotid
-    logging.info(response)
+    logger.info(response)
     return (response)
     
 if __name__ == "__main__":
