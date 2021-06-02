@@ -77,7 +77,7 @@ def lambda_handler(event, context):
     #exit()
     
     # Setup each Buy and Sell Limit
-    for gridstep in x.grid_array:
+    for gridstep in x.gbot.grid:
         if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
             logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
             gridorder = myexch.createLimitBuyOrder (config['market_symbol'], gridstep.buy_base_quantity, gridstep.ticker)

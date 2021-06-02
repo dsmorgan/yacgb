@@ -72,7 +72,7 @@ def lambda_handler(event, context):
                     reset_list.append(matched_step)
                     logger.warning("Canceled order (%d), resetting: %s %s" % (matched_step, exchange, corder['id']))
                     #setting this grid to None will trigger it to be reset
-                    x.grid_array[matched_step].ex_orderid = None
+                    x.gbot.grid[matched_step].ex_orderid = None
                     #don't do anything else with this step, next order
                 else:
                     #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
@@ -87,7 +87,8 @@ def lambda_handler(event, context):
                     ord = Orders(exchange+'_'+corder['id'], exchange=exchange, accountid=None, gbotid=x.gbot.gbotid, market_symbol=corder['symbol'], timestamp=corder['timestamp'], 
                         timestamp_st=datetime.datetime.fromtimestamp(corder['timestamp']/1000, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
                         side=corder['side'], type=corder['type'], status=corder['status'], cost=corder['cost'], price=corder['price'], amount=corder['amount'], 
-                        average=corder['average'], fee_cost=corder['fee']['cost'], fee_currency=corder['fee']['currency'], raw=corder
+                        #average=corder['average'], fee_cost=corder['fee']['cost'], fee_currency=corder['fee']['currency'], raw=corder
+                        average=corder['average'], fee_cost=0, fee_currency='USD', raw=corder
                         )
                     #x.gbot.last_order_ts=corder['timestamp'] <--this isn't correct, need to find a better solution
                     #TODO: There doesn't seem to be a safe way to filter the corder list based on 'since'.
@@ -100,7 +101,7 @@ def lambda_handler(event, context):
         # apply x.reset() against each grid (step_list) that matched an order, ensure that resets the ex_orderid too
         # This reconfigures the grid, moving the current "NONE" grid either up or down and the sell/buy limits are not
         for step in step_list:
-            x.reset(x.grid_array[step].ticker, '*')
+            x.reset(x.gbot.grid[step].ticker, '*')
             
         #Get the current ticker and double check that we aren't too far off from the grid step
         fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
@@ -108,12 +109,13 @@ def lambda_handler(event, context):
         if x.test_slortp(fticker.last, '*'):
             #State has either changed from active, or was already not active
             x.save()
-            for gridstep in x.grid_array:
+            for gridstep in x.gbot.grid:
                 #cancel each open order
                 if gridstep.ex_orderid != None:
                     try:
                         logger.info("%d> canceling order %s" % (gridstep.step, gridstep.ex_orderid))
-                        gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid))
+                        #TODO, apparently some exchanges (binanceus) require the symbol
+                        gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid), market_symbol)
                         logger.info(str(gridcancel))
                     except ccxt.OrderNotFound:
                         logger.warning("%s OrderNotFound" % gridstep.ex_orderid)
@@ -138,7 +140,7 @@ def lambda_handler(event, context):
         # Setup each Buy and Sell Limit, if we are still active
         if x.gbot.state == 'active':
             # This can be mostly pushed into gbotrunner
-            for gridstep in x.grid_array:
+            for gridstep in x.gbot.grid:
                 if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
                     logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)

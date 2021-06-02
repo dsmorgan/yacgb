@@ -3,8 +3,10 @@
 import os
 from pynamodb.models import Model
 from pynamodb.attributes import (
-    UnicodeAttribute, NumberAttribute, JSONAttribute, MapAttribute
+    UnicodeAttribute, NumberAttribute, ListAttribute, MapAttribute
 )
+
+from model.gridline import GridLine
 
 class Gbot(Model):
     class Meta:
@@ -23,7 +25,7 @@ class Gbot(Model):
     profit = NumberAttribute(default=0)
     step_profit = NumberAttribute(default=0)
     total_fees = NumberAttribute(default=0)
-    grid = JSONAttribute() 
+    grid = ListAttribute(of=GridLine) 
     grids = NumberAttribute(default=0)
     # DELETE THIS
     #original_grid = JSONAttribute()

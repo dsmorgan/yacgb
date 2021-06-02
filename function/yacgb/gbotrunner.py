@@ -2,9 +2,10 @@
 
 import logging
 import uuid
-import jsonpickle
+#import jsonpickle
 
 from model.gbot import Gbot
+from model.gridline import GridLine
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +38,9 @@ class Grid:
 class GbotRunner:
     
     def __init__(self, gbotid=None, config={}, type='live'):
-                #exchange=None, market_symbol=None, 
-                ## inputs
-                #grid_spacing=0, total_quote=0, max_ticker=0, min_ticker=0, reserve=0,
-                ## discovered from exchange/account
-                #start_ticker=0, start_base=0, start_quote=0, makerfee=0.005, takerfee=0.005, feecurrency='USD'):
         #RESET
         #Gbot.delete_table()
-        self.grid_array = []
+        #self.grid_array = []
         self.gbot = None
         
         if not Gbot.exists():
@@ -53,7 +49,7 @@ class GbotRunner:
         if gbotid != None:
             try:
                 self.gbot = Gbot.get(gbotid)
-                self.grid_array = jsonpickle.decode(self.gbot.grid)
+                #self.grid_array = jsonpickle.decode(self.gbot.grid)
                 logger.info("Lookup existing gbot, gbotid: " + gbotid)
             except Gbot.DoesNotExist:
                 logger.error('Unable to find gbot, gbotid: ' + gbotid)
@@ -65,7 +61,8 @@ class GbotRunner:
                     market_symbol=config['market_symbol'],
                     type=type,
                     last_ticker=config['start_ticker'],
-                    config=config
+                    config=config,
+                    grid=[]
                     )
 
             logger.info("Created new gbot, gbotid: " + self.gbot.gbotid)
@@ -75,7 +72,7 @@ class GbotRunner:
             #self.gbot.save()
     
     def save(self):
-        self.gbot.grid = jsonpickle.encode(self.grid_array)
+        #self.gbot.grid = jsonpickle.encode(self.grid_array)
         self.gbot.save()
         
     def test_slortp(self, tick, ts=''):
@@ -103,7 +100,7 @@ class GbotRunner:
             #grid_below = -1
             #grid_above = -1
             reset_array = []
-            for g in self.grid_array:
+            for g in self.gbot.grid:
                 if g.mode == 'sell' and g.ticker < lowest_sell:
                     lowest_sell = g.ticker
                     sell_grid = g.step
@@ -117,14 +114,14 @@ class GbotRunner:
             logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(reset_array)))  
             
             for gg in reset_array:
-                self.reset(self.grid_array[gg].ticker, ts)
+                self.reset(self.gbot.grid[gg].ticker, ts)
         
         else:
             logger.info(ts + " skipped ticker: " + str(tick))
     
     
     def check_id(self, exchange, orderid):
-        for g in self.grid_array:
+        for g in self.gbot.grid:
             #logger.info("Grid: \n%s" %str(g))
             if g.ex_orderid == exchange + '_' + orderid:
                 logger.info(">%d Matched %s" %(g.step, g.ex_orderid))
@@ -139,7 +136,7 @@ class GbotRunner:
         
         if grid_ticker > 0:
             # Find the current grid to be reset, calculate buy or sell based on what it was
-            for g in self.grid_array:
+            for g in self.gbot.grid:
                 if g.ticker == grid_ticker:
                     if g.mode == 'buy':
                         logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
@@ -168,7 +165,7 @@ class GbotRunner:
                         g.ex_orderid=None
                         g.mode = "NONE"
                     break
-        for g in self.grid_array:
+        for g in self.gbot.grid:
             # Reset all NONE mode grids to buy or sell, depending on position from current grid being reset
             if g.mode ==  "NONE" and g.ticker != grid_ticker:
                 if g.ticker < grid_ticker:
@@ -201,17 +198,17 @@ class GbotRunner:
         #grid_step = (max_ticker - min_ticker)/(self.grids-1)
         now_ticker = self.gbot.config.min_ticker
         # track grids above start_ticker
-        sell_count = 0
+        #sell_count = 0
         sell_quantity = -1
         closest_grid = -1
         closest = 9999999
         #Create each grid
         while now_ticker <= self.gbot.config.max_ticker:
             # add a new grid
-            self.grid_array.append(Grid(self.gbot.grids, now_ticker))
+            self.gbot.grid.append(GridLine(step=self.gbot.grids, ticker=now_ticker))
             #TODO: This doesn't seem to do anything, delete?
-            if now_ticker > self.gbot.config.start_ticker:
-                sell_count += 1
+            #if now_ticker > self.gbot.config.start_ticker:
+            #    sell_count += 1
             # find the closest grid to the current market price, in order to find which grid to mark as NONE   
             if abs(self.gbot.config.start_ticker - now_ticker) < closest:
                 closest = abs(self.gbot.config.start_ticker - now_ticker)
@@ -224,7 +221,7 @@ class GbotRunner:
         quote_step = usable_quote/(self.gbot.grids-1) 
         #use the current ticker to split the quantity to sell at each step
         # TODO: this should instead be sell the previous grid step, close enought for now
-        sell_quantity = usable_quote/self.gbot.config.start_ticker/(self.gbot.grids-1) 
+        #sell_quantity = usable_quote/self.gbot.config.start_ticker/(self.gbot.grids-1) 
         gs = self.gbot.config.grid_spacing
         
         
@@ -235,17 +232,31 @@ class GbotRunner:
         total_sell_q = 0
         last_step = self.gbot.config.min_ticker
 
-        for g in self.grid_array:
-            sell_quantity = g.buy_base_quantity*(1+gs)
+        for g in self.gbot.grid:
+            #sell_quantity = g.buy_base_quantity*(1+gs)
+            
+            g.quote_step = quote_step
+            g.buy_base_quantity = g.quote_step/g.ticker
+            g.sell_quote_quantity = g.buy_base_quantity*(1+gs)
+            g.sell_base_quantity = g.sell_quote_quantity*g.ticker
+            g.step_take = (g.ticker-last_step)*g.sell_quote_quantity
+            
             if (closest_grid == g.step):
-                g.allocate(quote_step, gs, "NONE", 0, (g.ticker-last_step))
+                ###g.allocate(quote_step, gs, "NONE", 0, (g.ticker-last_step))
+                 g.mode = "NONE"
+                
             elif g.ticker > self.gbot.config.start_ticker:
-                g.allocate(quote_step, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
+                ###g.allocate(quote_step, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
+                g.mode = "sell"
+                g.take = (g.ticker-self.gbot.config.start_ticker)*g.sell_quote_quantity
+                
                 total_sell_q += g.sell_quote_quantity
                 totalq += g.quote_step
                 totalb += g.buy_base_quantity
             else:
-                g.allocate(quote_step, gs, "buy", 0, (g.ticker-last_step))
+                ###g.allocate(quote_step, gs, "buy", 0, (g.ticker-last_step))
+                g.mode = "buy"
+                
                 total_buy_b += g.quote_step
                 totalq += g.quote_step
                 totalb += g.buy_base_quantity
@@ -306,9 +317,11 @@ class GbotRunner:
             
         ##TODO: this needs to be an extra function call, to return the actual amounts
         self.gbot.quote_balance = extra_q + self.gbot.config.start_quote - total_buy_b
-        self.gbot.base_balance = extra_b + self.gbot.config.start_base - total_sell_q
+        #self.gbot.base_balance = extra_b + self.gbot.config.start_base - total_sell_q
+        self.gbot.base_balance = extra_b + total_sell_q        
+        #print('extra_b', extra_b, 'start_base',  self.gbot.config.start_base, 'total_sell_q', total_sell_q)
         logger.info("base_balance %.8f quote_balance %.2f" % (self.gbot.base_balance, self.gbot.quote_balance))
-        self.gbot.grid = jsonpickle.encode(self.grid_array)
+        #self.gbot.grid = jsonpickle.encode(self.grid_array)
         #self.gbot.original_grid = self.gbot.grid
         ##TODO
         #self.start_timestamp = NumberAttribute(null=True)
@@ -321,7 +334,7 @@ class GbotRunner:
         total_b = self.gbot.base_balance
         total_q = self.gbot.quote_balance
     
-        for g in self.grid_array:
+        for g in self.gbot.grid:
             logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f %s" % (g.step, g.mode, g.ticker, g.quote_step, 
                                     g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.sell_base_quantity, g.ex_orderid))
             if g.mode == 'buy':

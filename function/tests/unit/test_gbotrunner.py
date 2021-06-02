@@ -48,8 +48,9 @@ def test_grid1(setup_gbot):
     
     total_buy=0
     total_sell=0
+    total_quantity_sell=0
     print("Grid...", setup_gbot.gbot.gbotid)
-    for g in setup_gbot.grid_array:
+    for g in setup_gbot.gbot.grid:
         print (g.step, g.ticker, 'q_step:', g.quote_step, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
                 's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
                 
@@ -58,11 +59,13 @@ def test_grid1(setup_gbot):
             
         if g.mode == 'sell':
             total_sell += g.ticker * g.sell_quote_quantity
+            total_quantity_sell += g.sell_quote_quantity
        
     print ('total_buy', total_buy, 'total_sell', total_sell, 'total_quote', setup_gbot.gbot.config.total_quote)
     print(setup_gbot.gbot.gbotid)
     
-    assert len(setup_gbot.grid_array) == setup_gbot.gbot.grids
+    assert len(setup_gbot.gbot.grid) == setup_gbot.gbot.grids
     assert round(total_buy + (total_sell*(1/(1+setup_gbot.gbot.config.grid_spacing))), 2) == setup_gbot.gbot.config.total_quote
+    assert round(total_quantity_sell, 2) == round(setup_gbot.gbot.base_balance, 2)
     
 
