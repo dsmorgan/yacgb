@@ -64,7 +64,7 @@ def test_grid1(setup_gbot):
     print ('total_buy', total_buy, 'total_sell', total_sell, 'total_quote', setup_gbot.gbot.config.total_quote)
     print(setup_gbot.gbot.gbotid)
     
-    assert len(setup_gbot.gbot.grid) == setup_gbot.gbot.grids
+    assert len(setup_gbot.gbot.grid) == setup_gbot.grids()
     assert round(total_buy + (total_sell*(1/(1+setup_gbot.gbot.config.grid_spacing))), 2) == setup_gbot.gbot.config.total_quote
     assert round(total_quantity_sell, 2) == round(setup_gbot.gbot.base_balance, 2)
     

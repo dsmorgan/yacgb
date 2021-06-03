@@ -9,7 +9,7 @@ import os
 import sys
 import random
 
-from model.orders import Orders
+from model.orders import Orders, orders_init
 #from yacgb.lookup import OrderBookLookup
 #from yacgb.bdt import BacktestDateTime
 from yacgb.awshelper import yacgb_aws_ps
@@ -33,6 +33,7 @@ for e in psconf.exch:
     myexch[e].enableRateLimit = False
     myexch[e].load_markets()
 
+orders_init()
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
@@ -78,9 +79,6 @@ def lambda_handler(event, context):
                     #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
                     step_list.append(matched_step)
                     ###This should be seperated to a class
-                    if not Orders.exists():
-                        Orders.create_table(read_capacity_units=3, write_capacity_units=3, wait=True)
-                        logger.info('Created Dynamodb table Orders')
                     #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
                     # Problem is, this isn't consistent between exchanges
                     ####TODO bug related to fee.cost and fee.currency not always being defined. Where do we get this? Might have to set to zeros for now
@@ -114,12 +112,14 @@ def lambda_handler(event, context):
                 if gridstep.ex_orderid != None:
                     try:
                         logger.info("%d> canceling order %s" % (gridstep.step, gridstep.ex_orderid))
-                        #TODO, apparently some exchanges (binanceus) require the symbol
+                        #TODO, apparently some exchanges (binanceus) require the symbol (?)
                         gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid), market_symbol)
                         logger.info(str(gridcancel))
                     except ccxt.OrderNotFound:
                         logger.warning("%s OrderNotFound" % gridstep.ex_orderid)
                     gridstep.ex_orderid = None
+            #Need to save again
+            x.save()
                     
             #additional step for stop_loss to also sell off all
             if x.gbot.state == 'stop_loss':

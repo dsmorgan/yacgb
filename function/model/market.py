@@ -1,10 +1,13 @@
 ## https://github.com/dsmorgan
 
 import os
+import logging
 from pynamodb.models import Model
 from pynamodb.attributes import (
     UnicodeAttribute, NumberAttribute
 )
+
+logger = logging.getLogger(__name__)
 
 class Market(Model):
     class Meta:
@@ -28,3 +31,9 @@ class Market(Model):
     limits_cost_min = NumberAttribute(null=True)
     limits_price_max = NumberAttribute(null=True)
     limits_price_min = NumberAttribute(null=True)
+    
+
+def market_init():
+    if not Market.exists():
+        Market.create_table(read_capacity_units=2, write_capacity_units=2, wait=True)
+        logger.info('Created Dynamodb table Market')

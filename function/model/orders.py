@@ -1,10 +1,13 @@
 ## https://github.com/dsmorgan
 
 import os
+import logging
 from pynamodb.models import Model
 from pynamodb.attributes import (
     UnicodeAttribute, NumberAttribute, JSONAttribute
 )
+
+logger = logging.getLogger(__name__)
 
 class Orders(Model):
     class Meta:
@@ -37,3 +40,8 @@ class Orders(Model):
     #'status': 'closed', 'symbol': 'LTC/USD', 'type': 'limit', 'timeInForce': None, 'postOnly': None, 'side': 'buy', 'price': 246.11, 'stopPrice': 0.0, 
     #'cost': 492.22, 'amount': 2.0, 'filled': 2.0, 'average': 246.11, 'remaining': 0.0, 'fee': {'cost': 0.78, 'rate': None, 'currency': 'USD'}, 
     #'trades': None}]
+
+def orders_init():
+    if not Orders.exists():
+        Orders.create_table(read_capacity_units=3, write_capacity_units=3, wait=True)
+        logger.info('Created Dynamodb table Orders')

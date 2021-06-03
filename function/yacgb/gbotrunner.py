@@ -2,50 +2,20 @@
 
 import logging
 import uuid
-#import jsonpickle
 
-from model.gbot import Gbot
+from model.gbot import Gbot, gbot_init
 from model.gridline import GridLine
 
 logger = logging.getLogger(__name__)
 
 
-class Grid:
-    def __init__(self, step=0, ticker=0):
-        self.step = step
-        self.ticker = ticker
-        self.quote_step = 0
-        self.buy_base_quantity = 0
-        self.sell_quote_quantity = 0
-        self.sell_base_quantity = 0
-        self.mode = None
-        self.take = 0
-        self.step_take = 0
-        self.buy_count = 0
-        self.sell_count = 0
-        self.ex_orderid = None
-
-    
-    def allocate(self, quote_step=0, grid_spacing=0, mode=None, take_diff=0, step_take_diff=0):
-        self.quote_step = quote_step
-        self.buy_base_quantity = self.quote_step/self.ticker
-        self.sell_quote_quantity = self.buy_base_quantity*(1+grid_spacing)
-        self.sell_base_quantity = self.sell_quote_quantity*self.ticker
-        self.mode = mode
-        self.take = take_diff*self.sell_quote_quantity
-        self.step_take = step_take_diff*self.sell_quote_quantity
-
 class GbotRunner:
-    
     def __init__(self, gbotid=None, config={}, type='live'):
         #RESET
         #Gbot.delete_table()
-        #self.grid_array = []
         self.gbot = None
+        gbot_init()
         
-        if not Gbot.exists():
-            Gbot.create_table(read_capacity_units=5, write_capacity_units=5, wait=True)
-            logger.info('Created Dynamodb table Gbot')
         if gbotid != None:
             try:
                 self.gbot = Gbot.get(gbotid)
@@ -56,14 +26,8 @@ class GbotRunner:
                 exit()
         else:
             # create a new bot
-            self.gbot = Gbot(str(uuid.uuid1()), 
-                    exchange=config['exchange'], 
-                    market_symbol=config['market_symbol'],
-                    type=type,
-                    last_ticker=config['start_ticker'],
-                    config=config,
-                    grid=[]
-                    )
+            self.gbot = Gbot(str(uuid.uuid1()), exchange=config['exchange'], market_symbol=config['market_symbol'],
+                    type=type, last_ticker=config['start_ticker'], config=config, grid=[])
 
             logger.info("Created new gbot, gbotid: " + self.gbot.gbotid)
             # initalize new bot
@@ -187,44 +151,42 @@ class GbotRunner:
                         g.sell_base_quantity = g.sell_quote_quantity*g.ticker
                     logger.info("Limit Sell %.8f @ %.5f Total: %.2f" % (g.sell_quote_quantity, g.ticker, g.ticker*g.sell_quote_quantity))
                     self.gbot.base_balance -= g.sell_quote_quantity
-            
+    
+    def grids(self):
+        return len(self.gbot.grid)
        
     def setup(self):
         #leave some off for reserve
         usable_quote = self.gbot.config.total_quote* (1-self.gbot.config.reserve)
-        #amt of total that is split at each step
-    
-        # check max larger then min
-        #grid_step = (max_ticker - min_ticker)/(self.grids-1)
-        now_ticker = self.gbot.config.min_ticker
-        # track grids above start_ticker
-        #sell_count = 0
+        
+        
+        #### _create_grids
+        # used to determine closest grid to the current market price
         sell_quantity = -1
         closest_grid = -1
         closest = 9999999
-        #Create each grid
+        
+        #Create each grid to figure out total number of grids
+        now_ticker = self.gbot.config.min_ticker
         while now_ticker <= self.gbot.config.max_ticker:
             # add a new grid
-            self.gbot.grid.append(GridLine(step=self.gbot.grids, ticker=now_ticker))
-            #TODO: This doesn't seem to do anything, delete?
-            #if now_ticker > self.gbot.config.start_ticker:
-            #    sell_count += 1
+            self.gbot.grid.append(GridLine(step=self.grids(), ticker=now_ticker))
             # find the closest grid to the current market price, in order to find which grid to mark as NONE   
             if abs(self.gbot.config.start_ticker - now_ticker) < closest:
                 closest = abs(self.gbot.config.start_ticker - now_ticker)
-                closest_grid = self.gbot.grids
+                closest_grid = self.grids()-1 #step is 1 less then the length of the grid
             #print (x, now_ticker)
             now_ticker = now_ticker*(1+self.gbot.config.grid_spacing)
-            self.gbot.grids += 1
         
         #divide the usable amount evenly for each step, for buying 
-        quote_step = usable_quote/(self.gbot.grids-1) 
+        quote_step = usable_quote/(self.grids()-1) 
         #use the current ticker to split the quantity to sell at each step
         # TODO: this should instead be sell the previous grid step, close enought for now
         #sell_quantity = usable_quote/self.gbot.config.start_ticker/(self.gbot.grids-1) 
         gs = self.gbot.config.grid_spacing
         
         
+         #### _fillin_grids
         #Determine total step and quote
         totalq = 0
         totalb = 0
@@ -260,6 +222,8 @@ class GbotRunner:
                 total_buy_b += g.quote_step
                 totalq += g.quote_step
                 totalb += g.buy_base_quantity
+                
+        ##### use self.log_totals(), delete below
             logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f" % (g.step, g.mode, g.ticker, g.quote_step, 
                                     g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_quote_quantity, g.take, g.step_take, g.sell_base_quantity))
             # reset next step
@@ -271,6 +235,8 @@ class GbotRunner:
         
         extra_q = 0
         extra_b = 0
+        
+        ##### _check_base_quote()
         #### Check here if we have enough, total_buy_b is the total of all grids that are tagged as buy (in quote currency)
         if (total_buy_b > self.gbot.config.start_quote):
             # Not enough available quote currency (e.g. USD)

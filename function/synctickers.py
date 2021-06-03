@@ -10,8 +10,8 @@ import random
 
 from yacgb.awshelper import yacgb_aws_ps
 from yacgb.ohlcv_sync import save_candles, candle_limits
-from model.market import Market
-from model.ohlcv import OHLCV
+from model.market import Market, market_init
+from model.ohlcv import OHLCV, ohlcv_init
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -19,6 +19,10 @@ logger.setLevel(logging.INFO)
 logger.info("CCXT version: %", ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
+
+# Create tables in dynamodb if they don't exist already
+market_init()
+ohlcv_init()
 
 # load the sconfigured exchange from ccxt, load_markets is needed to initialize
 myexch = {}
@@ -29,15 +33,6 @@ for e in psconf.exch:
 
 
 def lambda_handler(event, context):
-    #TODO refactor these out
-    # Create tables in dynamodb if they don't exist already
-    if not Market.exists():
-        Market.create_table(read_capacity_units=2, write_capacity_units=2, wait=True)
-        logger.info('Created Dynamodb table Market')
-    if not OHLCV.exists():
-        OHLCV.create_table(read_capacity_units=10, write_capacity_units=10, wait=True)   
-        logger.info('Created Dynamodb table OHLCV')
-  
     nowdt = datetime.datetime.now(timezone.utc)  
     thisminute = nowdt.replace(second=0, microsecond=0)
     
