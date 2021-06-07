@@ -25,9 +25,10 @@ class Gbot(Model):
     config = MapAttribute(default={})
     last_ticker = NumberAttribute()
     ### Candidates for delete
-    total_base = NumberAttribute(default=0)
-    quote_balance = NumberAttribute(default=0)
-    base_balance = NumberAttribute(default=0)
+    balance_quote = NumberAttribute(default=0)
+    balance_base = NumberAttribute(default=0)
+    need_quote = NumberAttribute(default=0)
+    need_base = NumberAttribute(default=0)
     #grids = NumberAttribute(default=0)
     ###
     transactions = NumberAttribute(default=0)
