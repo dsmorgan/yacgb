@@ -173,28 +173,28 @@ class GbotRunner:
         gs = self.gbot.config.grid_spacing
         last_grid_tick = self.gbot.config.min_ticker
         for g in self.gbot.grid:
-            g.quote_step = each_grid_buy
-            g.buy_base_quantity = g.quote_step/g.ticker
+            g.buy_quote_quantity = each_grid_buy
+            g.buy_base_quantity = g.buy_quote_quantity/g.ticker
             g.sell_base_quantity = g.buy_base_quantity*(1+gs)
             g.sell_quote_quantity = g.sell_base_quantity*g.ticker
             g.step_take = (g.ticker-last_grid_tick)*g.sell_base_quantity
             #Traverse the grid and fill in details specific to mode
             if (none_grid == g.step):
-                ###g.allocate(quote_step, gs, "NONE", 0, (g.ticker-last_step))
+                ###g.allocate(buy_quote_quantity, gs, "NONE", 0, (g.ticker-last_step))
                  g.mode = "NONE"
             elif g.ticker > self.gbot.config.start_ticker:
-                ###g.allocate(quote_step, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
+                ###g.allocate(buy_quote_quantity, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
                 g.mode = "sell"
                 g.take = (g.ticker-self.gbot.config.start_ticker)*g.sell_base_quantity
                 
                 total_sell_q += g.sell_quote_quantity
-                totalq += g.quote_step
+                totalq += g.buy_quote_quantity
                 totalb += g.buy_base_quantity
             else:
-                ###g.allocate(quote_step, gs, "buy", 0, (g.ticker-last_step))
+                ###g.allocate(buy_quote_quantity, gs, "buy", 0, (g.ticker-last_step))
                 g.mode = "buy"
-                total_buy_q += g.quote_step
-                totalq += g.quote_step
+                total_buy_q += g.buy_quote_quantity
+                totalq += g.buy_quote_quantity
                 totalb += g.buy_base_quantity
             last_grid_tick = g.ticker
         logger.info("Actual, based on current price in grid: total_buy_q %.2f total_sell_q %.8f" % (total_buy_q, total_sell_q)) 
@@ -206,22 +206,29 @@ class GbotRunner:
         q = 0
         for g in self.gbot.grid:
             if g.mode == "buy":
-                q+=g.quote_step
-        return (q)
+                q += g.buy_quote_quantity
+        return (round(q,2))
         
     def total_sell_q(self):
         q = 0
         for g in self.gbot.grid:
             if g.mode == "sell":
                 q += g.sell_quote_quantity
-        return (q)
+        return (round(q,2))
+ 
+    def total_buy_b(self):
+        b = 0
+        for g in self.gbot.grid:
+            if g.mode == "buy":
+                b += g.buy_base_quantity
+        return (round(b,4))
         
     def total_sell_b(self):
         b = 0
         for g in self.gbot.grid:
             if g.mode == "sell":
                 b += g.sell_base_quantity
-        return (b)
+        return (round(b,4))
     
     def _check_base_quote(self):
         self.gbot.need_quote = 0
@@ -289,11 +296,11 @@ class GbotRunner:
         total_q = self.gbot.balance_quote
     
         for g in self.gbot.grid:
-            logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f %s" % (g.step, g.mode, g.ticker, g.quote_step, 
+            logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f %s" % (g.step, g.mode, g.ticker, g.buy_quote_quantity, 
                                     g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_base_quantity, g.take, g.step_take, g.sell_quote_quantity, g.ex_orderid))
             if g.mode == 'buy':
                 # add up the quote
-                total_q += g.quote_step
+                total_q += g.buy_quote_quantity
             elif g.mode == 'sell':
                 # add up the base
                 total_b += g.sell_base_quantity

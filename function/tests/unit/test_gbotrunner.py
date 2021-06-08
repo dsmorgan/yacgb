@@ -53,7 +53,7 @@ def setup_gbot2(request):
             'reserve': 0, 
             'live_balance': False, 
             'start_base': 0, 
-            'start_quote': 3000, 
+            'start_quote': 3001, 
             'makerfee': 0.001, 
             'takerfee': 0.001, 
             'feecurrency': 'USD', 
@@ -84,7 +84,7 @@ def test_grid1(setup_gbot1):
     total_quantity_sell=0
     print("Grid...", setup_gbot1.gbot.gbotid)
     for g in setup_gbot1.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.quote_step, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
                 's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
                 
         if g.mode == 'buy':
@@ -112,13 +112,12 @@ def test_grid1(setup_gbot1):
 def test_grid2(setup_gbot2):
     print("Grid...", setup_gbot2.gbot.gbotid)
     
-    print ('config-total_quote', setup_gbot2.gbot.config.total_quote)
+    print ('config-total_quote', setup_gbot2.gbot.config.total_quote, 'last_ticker', setup_gbot2.gbot.last_ticker)
     print ('config-start_base', setup_gbot2.gbot.config.start_base, 'config-start_quote', setup_gbot2.gbot.config.start_quote)
     print ('balance_base', setup_gbot2.gbot.balance_base, 'need_base', setup_gbot2.gbot.need_base, 'balance_quote', setup_gbot2.gbot.balance_quote, 'need_quote', setup_gbot2.gbot.need_quote)
     print(setup_gbot2.gbot.gbotid)
     
-    assert round(setup_gbot2.total_buy_q() + (setup_gbot2.total_sell_q()*(1/(1+setup_gbot2.gbot.config.grid_spacing))),2) == setup_gbot2.gbot.config.total_quote
-    
+    assert round(setup_gbot2.total_buy_q() + (setup_gbot2.total_sell_q()*(1/(1+setup_gbot2.gbot.config.grid_spacing))),1) == setup_gbot2.gbot.config.total_quote
     assert setup_gbot2.gbot.state == 'active'
     
     
