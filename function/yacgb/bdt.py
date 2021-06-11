@@ -20,7 +20,7 @@ class BacktestDateTime:
         return (self.t.strftime("%Y%m%d %H:%M:%"))
 
     def dtsmin(self):
-        return (self.t.strftime("%Y%m%d %H:%M:00"))
+        return (self.t.strftime("%Y%m%d %H:%M"))
         
     def tstenmin(self):
         temp = self.tsmin()

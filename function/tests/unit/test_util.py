@@ -43,6 +43,9 @@ def test_event2config1():
     assert c['min_ticker'] == None
     assert c['reserve'] == 0
     assert c['live_balance'] == False
+    #TODO: Would need to match an re, '20210610 02:32'
+    #assert c['backtest_start'] == None
+    #assert c['backtest_end'] == None
     
 def test_configsetup1():
     e = {'exchange': 'kraken', 

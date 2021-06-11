@@ -18,9 +18,9 @@ def test_betterbool():
     z.addmin(min=60)
     assert z.dtshour() == '20210317 22:00'
     assert y.laterthan(z) == False
-    assert y.dtsmin() == '20210317 21:00:00'
+    assert y.dtsmin() == '20210317 21:00'
     z.addmin()
-    assert z.dtsmin() == '20210317 22:02:00'
+    assert z.dtsmin() == '20210317 22:02'
     assert z.dtshour() == '20210317 22:00'
     
     # w and y are the same value, so neither of them are later
