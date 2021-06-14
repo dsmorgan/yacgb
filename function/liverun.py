@@ -143,8 +143,8 @@ def lambda_handler(event, context):
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']
                     x.save()
                 elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
-                    logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_quote_quantity, gridstep.ticker))
-                    gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_quote_quantity, gridstep.ticker)
+                    logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_base_quantity, gridstep.ticker))
+                    gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_base_quantity, gridstep.ticker)
                     logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']
                     x.save()
