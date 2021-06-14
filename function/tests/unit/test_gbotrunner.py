@@ -75,6 +75,38 @@ def setup_gbot2(request):
     g.gbot.delete()
 
 
+@pytest.fixture(params=[200])
+def setup_gbot3(request):
+    config_gbot= {'exchange': 'binanceus', 
+            'market_symbol': 'BNB/USD', 
+            'grid_spacing': 0.1, 
+            'total_quote': 1000, 
+            'max_ticker': 250, 
+            'min_ticker': 150, 
+            'reserve': 0, 
+            'live_balance': False, 
+            'start_base': 5, 
+            'start_quote': 700, 
+            'makerfee': 0.001, 
+            'takerfee': 0.001, 
+            'feecurrency': 'USD', 
+            'backtest_start': '20210526 19:00', 
+            'backtest_end': '20210528 01:00', 
+            'backtest_timeframe': '1h', 
+            'max_percent_start': None, 
+            'min_percent_start': None, 
+            'stop_loss': 100, 
+            'stop_loss_precent_min': None, 
+            'take_profit': 300, 
+            'take_profit_percent_max': None, 
+            'init_market_order': False, 
+            'start_ticker': request.param}
+    g = GbotRunner(config=config_gbot, type='pytest')
+    print ("New gbot:", g.gbot.gbotid)
+    yield g
+    print ("Delete gbot:", g.gbot.gbotid)
+    g.gbot.delete()
+
 
 @local_dynamo_avail
 def test_grid1(setup_gbot1):
@@ -119,6 +151,25 @@ def test_grid2(setup_gbot2):
     
     assert round(setup_gbot2.total_buy_q() + (setup_gbot2.total_sell_q()*(1/(1+setup_gbot2.gbot.config.grid_spacing))),1) == setup_gbot2.gbot.config.total_quote
     assert setup_gbot2.gbot.state == 'active'
+    
+    
+@local_dynamo_avail
+def test_grid3(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+
+    assert setup_gbot3.grids() == 6
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.total_buy_q() == 600
+    assert setup_gbot3.total_sell_b() == 1.9124
+    assert setup_gbot3.gbot.need_quote == 0
+    assert setup_gbot3.gbot.need_base == 0
+    assert setup_gbot3.gbot.balance_quote == 100
+    assert setup_gbot3.gbot.balance_base == 3.0876
+
+    
     
     
     

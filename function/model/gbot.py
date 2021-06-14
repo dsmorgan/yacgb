@@ -24,7 +24,6 @@ class Gbot(Model):
     type=UnicodeAttribute(default='unknown')
     config = MapAttribute(default={})
     last_ticker = NumberAttribute()
-    ### Candidates for delete
     balance_quote = NumberAttribute(default=0)
     balance_base = NumberAttribute(default=0)
     need_quote = NumberAttribute(default=0)

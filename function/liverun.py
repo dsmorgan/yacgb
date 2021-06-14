@@ -112,7 +112,7 @@ def lambda_handler(event, context):
                 if gridstep.ex_orderid != None:
                     try:
                         logger.info("%d> canceling order %s" % (gridstep.step, gridstep.ex_orderid))
-                        #TODO, apparently some exchanges (binanceus) require the symbol (?)
+                        #Apparently some exchanges (binanceus) require the market_symbol in additon to the 
                         gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid), market_symbol)
                         logger.info(str(gridcancel))
                     except ccxt.OrderNotFound:
@@ -126,15 +126,10 @@ def lambda_handler(event, context):
                 #TODO: How do we retry this and check that it succeded?
                 x.gbot.state = 'stop_loss_sold_all'
                 #TODO we probably need to get the  amount to sell from adding up all of the sell limits in the grid. base_balance isn't correct
-                logger.info("Stop Loss, Sell All %s (%f)" %(market_symbol, x.gbot.base_balance))
-                sellall = myexch[exchange].createMarketSellOrder(market_symbol, x.gbot.base_balance)
+                logger.info("Stop Loss, Sell All %s (%f)" %(market_symbol, x.gbot.total_sell_b()))
+                sellall = myexch[exchange].createMarketSellOrder(market_symbol, x.gbot.total_sell_b())
                 logger.info(str(sellall))
                 x.save()
-                
-        #TODO: Check if the state is now 'stop_loss' or 'take_profit', ensure that all open orders are canceled. 
-        ## If stop_loss, then we also need to add up all the base quantity and market sell it.
-        ## Each time, we should check to make sure that all orders have been canceled safely. 
-        
         
         # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders
         # Setup each Buy and Sell Limit, if we are still active
