@@ -103,6 +103,7 @@ def event2config(e, exch_dict, must_match=False):
     conf['take_profit'] = exists_or_default('take_profit', e, None)
     conf['take_profit_percent_max'] = exists_or_default('take_profit_percent_max', e, None)
     conf['init_market_order'] = better_bool(exists_or_default('init_market_order', e, False))
+    conf['profit_protect_percent'] = exists_or_default('profit_protect_percent', e, None)
     return (conf)
     
 def configsetup(c, start_ticker):

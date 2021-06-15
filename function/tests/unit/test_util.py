@@ -33,7 +33,7 @@ def test_event2config1():
     c = event2config(event, exch, must_match=True)
     
     #Required
-    assert len(c) == 23
+    assert len(c) == 24
     assert c['exchange'] == 'kraken'
     assert c['market_symbol'] == 'LTC/USD'
     #Defaults
@@ -43,6 +43,7 @@ def test_event2config1():
     assert c['min_ticker'] == None
     assert c['reserve'] == 0
     assert c['live_balance'] == False
+    assert c['profit_protect_percent'] == None
     #TODO: Would need to match an re, '20210610 02:32'
     #assert c['backtest_start'] == None
     #assert c['backtest_end'] == None
@@ -71,17 +72,19 @@ def test_configsetup1():
         'take_profit': None, 
         'take_profit_percent_max': 0.05,
         'init_market_order': False,
+        'profit_protect_percent': 0.25,
         'start_ticker': 348.86}
     exch={'kraken': ['LTC/USD']}
     
     c = event2config(e, exch, must_match=True)
     c = configsetup(c, 100)
     
-    assert len(c) == 24
+    assert len(c) == 25
     assert c['start_ticker'] == 100
     assert c['max_ticker'] == 125
     assert c['min_ticker'] == 75
     assert c['stop_loss'] == 71.25
     assert c['take_profit'] == 131.25
+    assert c['profit_protect_percent'] == 0.25
     
     

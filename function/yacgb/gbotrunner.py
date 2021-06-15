@@ -27,7 +27,8 @@ class GbotRunner:
         else:
             # create a new bot
             self.gbot = Gbot(str(uuid.uuid1()), exchange=config['exchange'], market_symbol=config['market_symbol'],
-                    type=type, last_ticker=config['start_ticker'], config=config, grid=[])
+                    type=type, last_ticker=config['start_ticker'], at_high_ticker=config['start_ticker'], at_low_ticker=config['start_ticker'], 
+                    config=config, grid=[])
 
             logger.info("Created new gbot, gbotid: " + self.gbot.gbotid)
             # initalize new bot
@@ -40,23 +41,33 @@ class GbotRunner:
         #self.gbot.grid = jsonpickle.encode(self.grid_array)
         self.gbot.save()
         
-    def test_slortp(self, tick, ts=''):
+    def test_slortp(self, last_tick, high_tick, low_tick, ts=''):
         if self.gbot.state == 'active':
-            #TODO last_ticker is NOT being save in most cases
-            self.gbot.last_ticker=tick
-            if self.gbot.config.stop_loss != None and self.gbot.config.stop_loss >= tick:
+            #collect last, highest high, and lowest low
+            self.gbot.last_ticker=last_tick
+            if high_tick > self.gbot.at_high_ticker:
+                self.gbot.at_high_ticker = high_tick
+            if low_tick < self.gbot.at_low_ticker:
+                self.gbot.at_low_ticker = low_tick
+            #check for stop_loss or take_profit
+            if self.gbot.config.stop_loss != None and self.gbot.config.stop_loss >= last_tick:
                 self.gbot.state = 'stop_loss'
-                logger.warning('%s changed state to: %s (%f)' %(ts, self.gbot.state, tick))
+                logger.warning('%s changed state to: %s (%f)' %(ts, self.gbot.state, last_tick))
                 return True
-            if self.gbot.config.take_profit != None and self.gbot.config.take_profit <= tick:
+            if self.gbot.config.take_profit != None and self.gbot.config.take_profit <= last_tick:
                 self.gbot.state = 'take_profit'
-                logger.warning('%s changed state to: %s (%f)' %(ts, self.gbot.state, tick))
+                logger.warning('%s changed state to: %s (%f)' %(ts, self.gbot.state, last_tick))
+                return True
+            if self.gbot.config.profit_protect_percent != None and ((1-self.gbot.config.profit_protect_percent)*self.gbot.at_high_ticker >= last_tick):
+                self.gbot.state = 'profit_protect'
+                logger.warning('%s changed state to: %s (%f) profit_protect_percent: %f at_high_ticker: %f' % 
+                                    (ts, self.gbot.state, last_tick, self.gbot.config.profit_protect_percent, self.gbot.at_high_ticker))
                 return True
             return False
         return True
 
     def backtest(self, tick=0, ts='empty'):
-        if tick > 0 and not self.test_slortp(tick, ts):
+        if tick > 0 and not self.test_slortp(tick, tick, tick, ts):
             # find lowest sell and highest buy grids
             lowest_sell = 999999999
             highest_buy = 0

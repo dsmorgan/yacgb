@@ -24,11 +24,12 @@ class Gbot(Model):
     type=UnicodeAttribute(default='unknown')
     config = MapAttribute(default={})
     last_ticker = NumberAttribute()
+    at_high_ticker = NumberAttribute()
+    at_low_ticker = NumberAttribute()
     balance_quote = NumberAttribute(default=0)
     balance_base = NumberAttribute(default=0)
     need_quote = NumberAttribute(default=0)
     need_base = NumberAttribute(default=0)
-    #grids = NumberAttribute(default=0)
     ###
     transactions = NumberAttribute(default=0)
     profit = NumberAttribute(default=0)

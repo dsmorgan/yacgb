@@ -104,9 +104,8 @@ def lambda_handler(event, context):
         #Get the current ticker and double check that we aren't too far off from the grid step
         fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
         logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
-        if x.test_slortp(fticker.last, '*'):
+        if x.test_slortp(fticker.last, fticker.high, fticker.low, '*'):
             #State has either changed from active, or was already not active
-            x.save()
             for gridstep in x.gbot.grid:
                 #cancel each open order
                 if gridstep.ex_orderid != None:
