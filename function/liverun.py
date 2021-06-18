@@ -59,25 +59,25 @@ def lambda_handler(event, context):
         corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
         logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
         
-        step_list=[]
+        closed_list=[]
         reset_list=[]
         
         #Look at closed orders, and match against what is in gbot
         for corder in corders:
             logger.debug("closed order: %s, timestamp: %d" % (corder['id'], corder['timestamp']))
-            matched_step = x.check_id(exchange, corder['id'])
+            gridline_index = x.check_id(exchange, corder['id'])
 
-            if matched_step != None:
+            if gridline_index != None:
                 if corder['status'] == 'canceled':
                     #add it to the list to reset the order
-                    reset_list.append(matched_step)
-                    logger.warning("Canceled order (%d), resetting: %s %s" % (matched_step, exchange, corder['id']))
+                    reset_list.append(gridline_index)
+                    logger.warning("Canceled order (%d), resetting: %s %s" % (gridline_index, exchange, corder['id']))
                     #setting this grid to None will trigger it to be reset
-                    x.gbot.grid[matched_step].ex_orderid = None
+                    x.gbot.grid[gridline_index].ex_orderid = None
                     #don't do anything else with this step, next order
                 else:
                     #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
-                    step_list.append(matched_step)
+                    closed_list.append(gridline_index)
                     ###This should be seperated to a class
                     #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
                     # Problem is, this isn't consistent between exchanges
@@ -92,19 +92,20 @@ def lambda_handler(event, context):
                     #TODO: There doesn't seem to be a safe way to filter the corder list based on 'since'.
                     ord.save()
     
-        logger.info("step_list %s reset_list %s" % (str(step_list), str(reset_list)))
+        logger.info("closed_list %s reset_list %s" % (str(closed_list), str(reset_list)))
         # sequence list, in case there were multiple orders that matched
         ## assume that they come in the right order for now TODO, these are NOT ordered
         
-        # apply x.reset() against each grid (step_list) that matched an order, ensure that resets the ex_orderid too
+        # apply x.reset() against each grid (closed_list) that matched an order, ensure that resets the ex_orderid too
         # This reconfigures the grid, moving the current "NONE" grid either up or down and the sell/buy limits are not
-        for step in step_list:
+        for step in closed_list:
             x.reset(x.gbot.grid[step].ticker, '*')
             
         #Get the current ticker and double check that we aren't too far off from the grid step
         fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
         logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
         if x.test_slortp(fticker.last, fticker.high, fticker.low, '*'):
+            x.save()
             #State has either changed from active, or was already not active
             for gridstep in x.gbot.grid:
                 #cancel each open order
@@ -133,6 +134,7 @@ def lambda_handler(event, context):
         # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders
         # Setup each Buy and Sell Limit, if we are still active
         if x.gbot.state == 'active':
+            x.save()
             # This can be mostly pushed into gbotrunner
             for gridstep in x.gbot.grid:
                 if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
@@ -151,7 +153,7 @@ def lambda_handler(event, context):
         #TODO: set timestamp as well, so to check since last timestamp found. Or is that even possible?
         
         #TODO: Only print the grid if we've changed something.
-        if (len(step_list) + len (reset_list) > 0):
+        if (len(closed_list) + len (reset_list) > 0):
             x.totals()
         
     run_end = datetime.datetime.now(timezone.utc)

@@ -104,8 +104,12 @@ class GbotRunner:
                 return (g.step)
         return (None)
 
+    def _new_none(self, grid_list=[]):
+        
+        return
     
     def reset(self, grid_ticker=-1, timestamp=''):
+        #TODO: turn this into collecting a list, and then
         # used to take last Buy and setup the next Limit Sell
         temp_ticker = 0
         temp_quantity = 0

@@ -35,6 +35,7 @@ def setup_gbot1(request):
             'take_profit': None, 
             'take_profit_percent_max': None, 
             'init_market_order': False, 
+            'profit_protect_percent': None,
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -67,6 +68,7 @@ def setup_gbot2(request):
             'take_profit': 0.55, 
             'take_profit_percent_max': None, 
             'init_market_order': False, 
+            'profit_protect_percent': None,
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -100,6 +102,7 @@ def setup_gbot3(request):
             'take_profit': 300, 
             'take_profit_percent_max': None, 
             'init_market_order': False, 
+            'profit_protect_percent': 0.25,
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -169,8 +172,90 @@ def test_grid3(setup_gbot3):
     assert setup_gbot3.gbot.balance_quote == 100
     assert setup_gbot3.gbot.balance_base == 3.0876
 
+
+@local_dynamo_avail   
+def test_grid3_backtest(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    setup_gbot3.backtest(180)
+    setup_gbot3.backtest(200)
+    setup_gbot3.backtest(220)
+    setup_gbot3.backtest(219.25)
+    setup_gbot3.save()
     
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+                
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.gbot.transactions == 3
+    assert setup_gbot3.gbot.at_low_ticker == 180
+    assert setup_gbot3.gbot.at_high_ticker == 220
+    assert setup_gbot3.gbot.last_ticker == 219.25
+    assert round(setup_gbot3.gbot.profit, 2) == 39.01
+    assert round(setup_gbot3.gbot.step_profit, 2) == 39.36
+    assert round(setup_gbot3.gbot.total_fees, 2) == 0.64
     
+
+@local_dynamo_avail   
+def test_grid3_backtest_profit_protect(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    setup_gbot3.backtest(180)
+    setup_gbot3.backtest(200)
+    setup_gbot3.backtest(220)
+    setup_gbot3.backtest(201)
+    setup_gbot3.backtest(182)
+    setup_gbot3.backtest(164)
+    setup_gbot3.backtest(180)
+    setup_gbot3.save()
+    
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+                
+    assert setup_gbot3.gbot.state == 'profit_protect'
+    assert setup_gbot3.gbot.transactions == 4
+
+
+@local_dynamo_avail   
+def test_grid3_backtest_take_profit(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    setup_gbot3.backtest(180)
+    setup_gbot3.backtest(200)
+    setup_gbot3.backtest(220)
+    setup_gbot3.backtest(240)
+    setup_gbot3.backtest(266)
+    setup_gbot3.backtest(301)
+    setup_gbot3.backtest(240)
+    setup_gbot3.backtest(219)
+    setup_gbot3.backtest(180)
+    setup_gbot3.save()
+    
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+                
+    assert setup_gbot3.gbot.state == 'take_profit'
+    assert setup_gbot3.gbot.transactions == 4
+  
+@local_dynamo_avail   
+def test_grid3_backtest_stop_loss(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    #work around for now to disable this
+    setup_gbot3.gbot.config.profit_protect_percent=None
+    setup_gbot3.backtest(180)
+    setup_gbot3.backtest(160)
+    setup_gbot3.backtest(145)
+    setup_gbot3.backtest(99.87)
+    setup_gbot3.backtest(152)
+    setup_gbot3.backtest(200)
+    setup_gbot3.save()
+    
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+                
+    assert setup_gbot3.gbot.state == 'stop_loss'
+    assert setup_gbot3.gbot.transactions == 3
     
     
     
