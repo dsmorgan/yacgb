@@ -75,22 +75,23 @@ class GbotRunner:
             buy_grid = -1
             #grid_below = -1
             #grid_above = -1
-            reset_array = []
+            closed_array = []
             for g in self.gbot.grid:
                 if g.mode == 'sell' and g.ticker < lowest_sell:
                     lowest_sell = g.ticker
                     sell_grid = g.step
                 if g.mode == 'sell' and g.ticker <= tick:
-                    reset_array.append(g.step)
+                    closed_array.append(g.step)
                 if g.mode == 'buy' and g.ticker > highest_buy:
                     highest_buy = g.ticker
                     buy_grid = g.step
                 if g.mode == 'buy' and g.ticker >= tick:
-                    reset_array.insert(0,g.step)
-            logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(reset_array)))  
+                    closed_array.insert(0,g.step)
+            logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_array)))  
             
-            for gg in reset_array:
-                self.reset(self.gbot.grid[gg].ticker, ts)
+            #for gg in closed_array:
+            #    self.reset(self.gbot.grid[gg].ticker, ts)
+            self.closed_adjust(closed_array, ts)
         
         else:
             logger.info(ts + " skipped ticker: " + str(tick))
@@ -104,20 +105,39 @@ class GbotRunner:
                 return (g.step)
         return (None)
 
-    def _new_none(self, grid_list=[]):
+    def _current_none(self):
+        ret = -1
+        valid = 0
+        for g in self.gbot.grid:
+            if g.mode == "NONE":
+                ret = g.step
+                valid += 1
+        if valid == 1:
+            return (ret)
+        else:
+            return (-1)
+
+    def _new_none(self, none_index, grid_list=[]):
+        if (none_index < 0):
+            return (none_index)
+        up = 0
+        down = 0
         
-        return
+        for g in self.gbot.grid:
+            if g.step in grid_list:
+                if g.mode == "buy":
+                    down += 1
+                elif g.mode == "sell":
+                    up += 1
+        return (none_index + up - down)
     
-    def reset(self, grid_ticker=-1, timestamp=''):
-        #TODO: turn this into collecting a list, and then
-        # used to take last Buy and setup the next Limit Sell
-        temp_ticker = 0
-        temp_quantity = 0
+    def closed_adjust(self, closed=[], timestamp=''):
+        cindex = self._current_none()
+        nindex = self._new_none(cindex, closed)
         
-        if grid_ticker > 0:
-            # Find the current grid to be reset, calculate buy or sell based on what it was
+        for c in closed:
             for g in self.gbot.grid:
-                if g.ticker == grid_ticker:
+                if c == g.step:
                     if g.mode == 'buy':
                         logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
                         fee = g.ticker*g.buy_base_quantity*self.gbot.config.makerfee
@@ -141,11 +161,11 @@ class GbotRunner:
                         g.sell_count +=1
                         g.ex_orderid=None
                         g.mode = "NONE"
-                    break
+        
         for g in self.gbot.grid:
             # Reset all NONE mode grids to buy or sell, depending on position from current grid being reset
-            if g.mode ==  "NONE" and g.ticker != grid_ticker:
-                if g.ticker < grid_ticker:
+            if g.mode ==  "NONE" and g.step != nindex:
+                if g.ticker < self.gbot.grid[nindex].ticker:
                     #buy
                     g.mode = "buy"
                     logger.info("Limit Buy %.8f @ %.5f Total: %.2f" % (g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
@@ -155,6 +175,58 @@ class GbotRunner:
                     # reset the take to be the same as step_take going forward
                     g.take = g.step_take
                     logger.info("Limit Sell %.8f @ %.5f Total: %.2f" % (g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
+            elif g.step == nindex:
+                if g.mode != "NONE":
+                    logger.error("step %d, ticker  %.5f, mode should be NONE, but was %s, resetting" % (g.step, g.ticker, g.mode))
+                    g.mode = "NONE"
+        
+    
+    # def reset(self, grid_ticker=-1, timestamp=''):
+    #     #TODO: turn this into collecting a list, and then
+    #     # used to take last Buy and setup the next Limit Sell
+    #     temp_ticker = 0
+    #     temp_quantity = 0
+    #     if grid_ticker > 0:
+    #         # Find the current grid to be reset, calculate buy or sell based on what it was
+    #         for g in self.gbot.grid:
+    #             if g.ticker == grid_ticker:
+    #                 if g.mode == 'buy':
+    #                     logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
+    #                     fee = g.ticker*g.buy_base_quantity*self.gbot.config.makerfee
+    #                     self.gbot.total_fees += fee #TODO: what about using actual fee?
+    #                     self.gbot.profit -= fee
+    #                     self.gbot.step_profit -= fee
+    #                     # take purchased amount (buy_base_quantity) and use to calculate sale and profit(s)
+    #                     temp_ticker = g.ticker
+    #                     temp_quantity = g.buy_base_quantity
+    #                     self.gbot.transactions += 1
+    #                     g.buy_count +=1
+    #                     g.ex_orderid=None
+    #                     g.mode = "NONE"
+    #                 if g.mode == 'sell':
+    #                     logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
+    #                     fee = g.sell_quote_quantity*self.gbot.config.makerfee
+    #                     self.gbot.total_fees += fee #TODO: what about using actual fee?
+    #                     self.gbot.profit += g.take - fee
+    #                     self.gbot.step_profit += g.step_take - fee
+    #                     self.gbot.transactions += 1
+    #                     g.sell_count +=1
+    #                     g.ex_orderid=None
+    #                     g.mode = "NONE"
+    #                 break
+    #     for g in self.gbot.grid:
+    #         # Reset all NONE mode grids to buy or sell, depending on position from current grid being reset
+    #         if g.mode ==  "NONE" and g.ticker != grid_ticker:
+    #             if g.ticker < grid_ticker:
+    #                 #buy
+    #                 g.mode = "buy"
+    #                 logger.info("Limit Buy %.8f @ %.5f Total: %.2f" % (g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
+    #             else:
+    #                 #sell
+    #                 g.mode = "sell"
+    #                 # reset the take to be the same as step_take going forward
+    #                 g.take = g.step_take
+    #                 logger.info("Limit Sell %.8f @ %.5f Total: %.2f" % (g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
     
     
     def grids(self):

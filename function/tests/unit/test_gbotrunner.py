@@ -258,4 +258,56 @@ def test_grid3_backtest_stop_loss(setup_gbot3):
     assert setup_gbot3.gbot.transactions == 3
     
     
+@local_dynamo_avail   
+def test_grid3_closed_adjust(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+
+    setup_gbot3.closed_adjust([])
+    setup_gbot3.closed_adjust([2, 4])
+    setup_gbot3.save()
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.gbot.transactions == 2
+    assert setup_gbot3._current_none() == 3    
     
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+    
+    
+    setup_gbot3.closed_adjust([1, 2])           
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.gbot.transactions == 4
+    assert setup_gbot3._current_none() == 1
+    
+    
+    setup_gbot3.closed_adjust([3, 2, 4, 0])           
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.gbot.transactions == 8
+    assert setup_gbot3._current_none() == 3
+    
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+    
+    setup_gbot3.closed_adjust([2]) 
+    setup_gbot3.closed_adjust([1]) 
+    setup_gbot3.closed_adjust([2])
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.gbot.transactions == 11
+    assert setup_gbot3._current_none() == 2
+    
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    for g in setup_gbot3.gbot.grid:
+        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
+                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+                
+    setup_gbot3.closed_adjust([5 ,3 ,1 ,4]) 
+
+    assert setup_gbot3.gbot.state == 'active'
+    assert setup_gbot3.gbot.transactions == 15
+    assert setup_gbot3._current_none() == 4
