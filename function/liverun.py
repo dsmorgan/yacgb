@@ -96,13 +96,13 @@ def lambda_handler(event, context):
         # sequence list, in case there were multiple orders that matched
         ## assume that they come in the right order for now TODO, these are NOT ordered
         
-        # apply x.reset() against each grid (closed_list) that matched an order, ensure that resets the ex_orderid too
-        # This reconfigures the grid, moving the current "NONE" grid either up or down and the sell/buy limits are not
-        #for step in closed_list:
-        #    x.reset(x.gbot.grid[step].ticker, '*')
+        # apply x.closed_adjust() against each grid that closed (closed_list), which was collected as a match of a closed order, 
+        # ensure that resets the ex_orderid too. This reconfigures the grid, moving the current "NONE" grid either up or down and then we can reset the orders
         x.closed_adjust(closed_list, ts)
             
-        #Get the current ticker and double check that we aren't too far off from the grid step
+        #Get the current ticker and check that we haven't tripped the stop_loss, take_profit, or profit_protect triggers
+        #TODO: should we also check that we aren't too far off from the grid step? It may not matter
+        # because the grid is now safe in handling multiple closed orders per interval
         fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
         logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
         if x.test_slortp(fticker.last, fticker.high, fticker.low, '*'):
@@ -113,7 +113,7 @@ def lambda_handler(event, context):
                 if gridstep.ex_orderid != None:
                     try:
                         logger.info("%d> canceling order %s" % (gridstep.step, gridstep.ex_orderid))
-                        #Apparently some exchanges (binanceus) require the market_symbol in additon to the 
+                        #Apparently some exchanges (binanceus) require the market_symbol in additon to the orderid
                         gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid), market_symbol)
                         logger.info(str(gridcancel))
                     except ccxt.OrderNotFound:
@@ -122,14 +122,19 @@ def lambda_handler(event, context):
             #Need to save again
             x.save()
                     
-            #additional step for stop_loss to also sell off all
-            if x.gbot.state == 'stop_loss':
+            #additional step for stop_loss and profit_protect to also sell off all held base. take_profit generally
+            #shouldn't get triggered unless we are above the top of the grid, but doesn't hurt to attempt to sell if we somehow have some
+            if x.gbot.state == 'stop_loss' or x.gbot.state == 'take_profit' or x.gbot.state == 'profit_protect':
                 #TODO: How do we retry this and check that it succeded?
-                x.gbot.state = 'stop_loss_sold_all'
+                x.gbot.state = x.gbot.state + '_sold_all'
                 #TODO we probably need to get the  amount to sell from adding up all of the sell limits in the grid. base_balance isn't correct
-                logger.info("Stop Loss, Sell All %s (%f)" %(market_symbol, x.gbot.total_sell_b()))
-                sellall = myexch[exchange].createMarketSellOrder(market_symbol, x.gbot.total_sell_b())
-                logger.info(str(sellall))
+                ttsell = x.gbot.total_sell_b()
+                logger.info("State: %s Total To Sell %f" % (x.gbot.state, ttsell))
+                if round(ttsell, 4) > 0:
+                    logger.info("Market Sell All %s (%f)" %(market_symbol, ttsell))
+                    sellall = myexch[exchange].createMarketSellOrder(market_symbol, ttsell)
+                    logger.info(str(sellall))
+                x.totals()
                 x.save()
         
         # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders

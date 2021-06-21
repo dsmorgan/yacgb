@@ -1,10 +1,25 @@
 #!/bin/bash
 set -eo pipefail
-FUNCTION=$(aws cloudformation describe-stack-resource --stack-name yacgb --logical-resource-id function --query 'StackResourceDetail.PhysicalResourceId' --output text)
 
-while true; do
-  aws lambda invoke --function-name $FUNCTION --payload file://event.json invoke-out.json
-  cat invoke-out.json
-  echo ""
-  sleep 2
-done
+if [ -z "$2" ]; then
+    echo "Usage: $0 <backtest|liveinit> <event.json>, parameters missing"
+    exit 1
+fi
+
+if [[ "$1" != "backtest" && "$1" != "liveinit" ]]; then
+    echo "Usage: $0 <backtest|liveinit> <event.json>, unknown function name: $1"
+    exit 1
+fi
+
+FUNCTION=$(aws cloudformation describe-stack-resource --stack-name yacgb --logical-resource-id $1 --query 'StackResourceDetail.PhysicalResourceId' --output text)
+
+#This assumes aws-cli v2
+aws lambda invoke --function-name $FUNCTION --payload fileb://$2 invoke-out.json --log-type Tail --query 'LogResult' --output text |  base64 -d
+#aws-cli v1 (not tested)
+#aws lambda invoke --function-name $FUNCTION --payload file://$2 invoke-out.json --log-type Tail --query 'LogResult' --output text
+echo ""
+cat invoke-out.json
+echo ""
+#sed -i'' -e 's/"//g' invoke-out.json
+#sleep 15
+#aws logs get-log-events --log-group-name /aws/lambda/$1 --log-stream-name $(cat invoke-out.json) --limit 5
