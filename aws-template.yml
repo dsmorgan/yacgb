@@ -81,6 +81,6 @@ Resources:
     Properties:
       LayerName: yacgb-lib
       Description: Dependencies for the yacgb app
-      ContentUri: yacgb-layer
+      ContentUri: package/.
       CompatibleRuntimes:
         - python3.8

@@ -1,11 +1,11 @@
 # Yet Another Cryptocurrency Grid Bot (yacgb) - Still a work in progress
 
 ## Overview
-An experiment in bot-based Crypto trading, with the goal of having Jeff Bezos pay for running it [^1]. The current implementation uses a standard grid trading strategy, with the ability to set several safety settings in cases that the current price of a currency goes outside of the grid. 
+An experiment in bot-based Crypto trading, with the goal of having it run in the cloud and having Jeff Bezos pay for running it! [^1]. The current implementation uses a standard grid trading strategy, with the ability to set several safety settings in cases that the current price of a currency goes outside of the grid. 
 
-Feature Summary:
+Built using:
 - ccxt library, enabling access to just about every crypto exchange out there
-- Leverages AWS DynamoDB as a doc store, and pynamodb for accessing it
+- pynamodb library, enabling persistence using AWS DynamoDB
 
 [^1]: Leveraging AWS Free-Tier, which notoriously lacks any guardrails. No gurantees it will actually cost you nothing and requires fairly regular monitoring and experience in AWS cost management practices, YMMV.
 
@@ -21,7 +21,7 @@ $ git clone https://github.com/dsmorgan/yacgb.git
 ```
 The bot can be installed in different ways in AWS, as well as can be run locally.
 
-## Deploy in AWS, using helper scripts
+## Deploy in AWS, using supplied helper scripts
 If not setup already, configure your awscli client. At a minimum, you'll need to set your region, access key and secret.
 
 ```shell
@@ -48,7 +48,7 @@ $ ./2-build-layer.sh
 Collecting...
 
 ```
-Edit the next script, and configure the exchanges and market symbols you plan to use. To be safe, you can avoid setting the apikey, secret and (sometimes) password in the script and instead set in through the AWS console. 
+Edit the next script, and configure the exchanges and market symbols you plan to use. To be safe, you can avoid setting the apikey, secret and (sometimes) password in the script and instead set these through the AWS console. Additional exchange and symbols can be added as needed later.
 
 ```shell
 $ ./2.5-config-sm-pss.sh 
@@ -60,7 +60,7 @@ $ ./2.5-config-sm-pss.sh
 
 Navigate to the AWS "Systems Manager", then to the "Parameter Store" under the Application Management sub menu to modify or add additional values if required.
 
-Use the next script to setup the Cloud Formation to deploy lambda and the IAM permissions.
+Use the next script to setup the Cloud Formation to deploy the IAM roles and Lambda application.
 
 ```shell
 $ ./3-deploy.sh  
@@ -102,14 +102,15 @@ remove_bucket: yacgb-e7cccc733e0f6dac
 Delete function log group (/aws/lambda/yacgb-synctickers-772VVOXEiVVr)? (y/n)y
 ```
 
-Some things that also need to be deleted to remove all traces of this deployment:
+Some things that yiou may need to deleted to remove all traces of this deployment:
 - Cloudwatch - remove all log groups associated with the yacgb application
 - System Manager - remove all the parameter store configuration starting with "/yacgb"
 - DynamoDB - delete the tables: OHLCV, Gbot, Market, and Orders (if they exist)
 
 
 ## Deploy in AWS, using SAM
-* TBD
+Currently not working
+
 
 ## Run Locally
 For test and development purposes, the bot components can be run locally as well, with the addition of:

@@ -2,12 +2,14 @@
 set -eo pipefail
 
 if [ -z "$2" ]; then
-    echo "Usage: $0 <synctickers|backtest|liveinit|liverun> <event.json>, parameters missing"
+    echo "Parameters missing"
+    echo "Usage: $0 <synctickers|backtest|liveinit|liverun> <event.json>"
     exit 1
 fi
 
 if [[ "$1" != "synctickers" && "$1" != "backtest" && "$1" != "liveinit"  && "$1" != "liverun" ]]; then
-    echo "Usage: $0 <synctickers|backtest|liveinit|liverun> <event.json>, unknown function name: $1"
+    echo "Unknown function name: $1"
+    echo "Usage: $0 <synctickers|backtest|liveinit|liverun> <event.json>"
     exit 1
 fi
 
