@@ -98,7 +98,7 @@ def lambda_handler(event, context):
         
         # apply x.closed_adjust() against each grid that closed (closed_list), which was collected as a match of a closed order, 
         # ensure that resets the ex_orderid too. This reconfigures the grid, moving the current "NONE" grid either up or down and then we can reset the orders
-        x.closed_adjust(closed_list, ts)
+        x.closed_adjust(closed_list, '*')
             
         #Get the current ticker and check that we haven't tripped the stop_loss, take_profit, or profit_protect triggers
         #TODO: should we also check that we aren't too far off from the grid step? It may not matter

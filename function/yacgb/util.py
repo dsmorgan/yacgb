@@ -84,7 +84,7 @@ def event2config(e, exch_dict, must_match=False):
     #"takerfee": 0.0016, 
     conf['takerfee'] = exists_or_default('takerfee', e, 0.0016)
     #"feecurrency": "USD",
-    conf['feecurrency'] = exists_or_default('feecurrency', e, 0.0016)
+    conf['feecurrency'] = exists_or_default('feecurrency', e, 'USD')
     #"start": "20210422 16:00",
     nowts = BacktestDateTime()
     conf['backtest_start'] = exists_or_default('backtest_start', e, nowts.dtsmin())

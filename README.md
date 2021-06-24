@@ -154,24 +154,33 @@ Sample event.json
 ```
 
 
-
-| Syntax | Description |
+| Configuration Settings | Description |
 | ----------- | ----------- |
-| exchange | (required) |
-| market_symbol | (required)  |
-| grid_spacing | (optional, default:0)|
-| total_quote | |
-| min_ticker | | 
-| max_ticker | |
-| reserve | |
-| live_balance | |
-| start_base | |
-| start_quote | | 
-| makerfee | |
-| takerfee | |
-| feecurrency | | 
-| backtest_start | 20210526 19:00 |
-| backtest_end  | 20210528 01:00 |
-| take_profit | |
-| stop_loss   | |
-| profit_protect | |
+| exchange | (required) Exchange name in ccxt format (e.g. binanceus) |
+| market_symbol | (required)  Market Symbol in ccxt base_quote format (e.g. BTC_USD) |
+| total_quote | (required) amount of quote currency allocated for the gbot to control |
+| min_ticker | (optional) lowest ticker amount in quote currency to create the grid. This value is overridden if min_percent_start is configured | 
+| min_percent_start | (optional) calculates the min_ticker value as a percent of the most recent ticker price (e.g. 0.25) | 
+| max_ticker | (optional) highest ticker amount in quote currency to create the grid. This value is overridden if max_percent_start is configured |
+| max_percent_start | (optional) calculates the max_ticker value as a percent of the most recent ticker price (e.g. 0.25) | 
+| grid_spacing | (optional, default:0.04) the increment between grid lines. The grid is created by adding the increment percent from min_ticker to max_ticker. |
+| reserve | (optional, default: 0.0) the amount of total_quote that should be reserved. Setting a small value here will reduce the chance that rounding errors, incomplete transactions, and unexpected issues result in failures |
+| live_balance | (optional, default: False, backtest only) Setting to True will validate exchange account access and override start_base and start_quote values from the configured account |
+| start_base | (optional, default: 0) amount of base available at init for trading |
+| start_quote | (optional, defailt: 0) amount of quote available at init for trading | 
+| makerfee | (optional, default: 0.0016) Trade makerfee percent for this exchange/market_symbol |
+| takerfee | (optional, default: 0.0026) Trade takerfee percent for this exchange/market_symbol |
+| feecurrency | (optional, default: USD) Trade fee currency for this exchange/market_symbol | 
+| take_profit | (optional)  When set, if the market_symbol exceeds this price, all limit trades are canceled and no further trades are made. Must be greater then max_ticker |
+| take_profit_percent_max | When set, overrides take_profit with a calculted value that is determined by multiplying this value by max_ticker |
+| stop_loss | (optional)  When set, if the market_symbol drops below this price, all limit trades are canceled, all base currency intended for limit sales are aggregated to an immediate market sale and no further trades are made.  |
+| stop_loss_precent_min |  When set, overrides stop_loss with a calculted value that is determined by multiplying this value by min_ticker |
+| profit_protect_percent | When set, the all time high quote price of the market symbol is tracked, and if the price drops below by more then the percent comfigured, , all base currency intended for limit sales are aggregated to an immediate market sale and no further trades are made.| 
+| init_market_order | (optional) Not implemented yet | 
+| backtest_start | (optional, default: <now>, backtest only) Backtest start timestamp in UTC, using YYYYMMDD HH:MM format, e.g. 20210526 19:00 |
+| backtest_end  | (optional, default: <now>, backtest only) Backtest end timestamp in UTC, using YYYYMMDD HH:MM format, e.g. 20210528 01:00 |
+| backtest_timeframe | (optional, default: 1h, backtest only) Not implemented yet |
+
+backtest only settings are safely ignored when used for liveinit
+
+
