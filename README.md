@@ -73,7 +73,7 @@ Waiting for changeset to be created..
 Waiting for stack create/update to complete
 Successfully created/updated stack - yacgb
 ```
-You can test the syncticker configuration and invoke it once to ensure everything is working...
+You can test the syncticker configuration and invoke it once to ensure everything is working (pass it any event.json file, its contents are ignored)...
 
 ```shell
 ./4-invoke.sh synctickers ../events/event.json
@@ -82,53 +82,28 @@ You can test the syncticker configuration and invoke it once to ensure everythin
 
 "OK"
 ```
-A snippet of the log should be shown, and the "OK" indicates a successful execution. 
+A snippet of the log should be shown, and the "OK" indicates a successful execution. Each execution will use the configuration defined in Parameterstore to collect ticker data for each exchange + market_symbol defined. About 2 weeks of historical data is collected for new market_symbols in order to support backtesting. 
 
 In order to keep the synctickers running periodically, you'll need to manually create a trigger (Event Bridge) that will execute the lambda auatomatically every configured period. 1 minute is preferred, and can be done by setting the Schedule Expression to: rate(1 minute)
 
-You'll next need to perform backtesting and then setup a bot for running live.
-
-### Deleting and Cleanup
-
-Use the script in the aws directory to delete the stack and cleanup most of the functions.
-
-```shell
-$ ./5-cleanup.sh
-Deleted yacgb stack.
-Delete deployment artifacts and bucket (yacgb-e7cccc733e0f6dac)? (y/n)y
-delete: s3://yacgb-e7cccc733e0f6dac/8fe9cf785d08943d9904b5e1c82d2c23
-delete: s3://yacgb-e7cccc733e0f6dac/be3a6ef10140b918018413f1a656b614
-remove_bucket: yacgb-e7cccc733e0f6dac
-Delete function log group (/aws/lambda/yacgb-synctickers-772VVOXEiVVr)? (y/n)y
-```
-
-Some things that yiou may need to deleted to remove all traces of this deployment:
-- Cloudwatch - remove all log groups associated with the yacgb application
-- System Manager - remove all the parameter store configuration starting with "/yacgb"
-- DynamoDB - delete the tables: OHLCV, Gbot, Market, and Orders (if they exist)
+Currently, no ticker data is deleted so manual purging is required if necessary. However, the AWS free-tier (at time of writting) allows 25GB for free, and the ticker data is highly compressed so this isn't something of immediate concern.
 
 
 ## Deploy in AWS, using SAM
-Currently not working
+Work in progress
 
 
 ## Run Locally
 For test and development purposes, the bot components can be run locally as well, with the addition of:
 * use pip to satisfy dependencies locally
-* Download and install from AWS a local dynamodb 
+* Download and install from AWS a local dynamodb for development/testing purposes
 
 
-**IMPORTANT:** When running locally, you need to make sure to set the environment variable to override the default location of the Dynamodb service, e.g. export DYNAMODB_HOST=http://localhost:8000. Otherwise, your awscli credentials and configuration may be used to leverage the AWS services.
+**IMPORTANT:** When running locally, you need to make sure to set the environment variable to override the default location of the Dynamodb service, e.g. export DYNAMODB_HOST=http://localhost:8000. Otherwise, your awscli credentials and configuration may be used to leverage the AWS services remotely.
 
 ---
 
-# Backtesting
-Experimentation until you are comfortable with the configuration to use in a live run.
-
-# Running Live 
-A 2 step process, liveinit sets up the grid and initial orders and is run only once. Liverun is then executed periodically to maintain the grid.
-
-## Event.json Parameter Definitions
+# Create an Event File that defines a Grid Bot configuration
 
 Sample event.json
 
@@ -152,6 +127,8 @@ Sample event.json
   "take_profit": 0.5011
 }
 ```
+
+The following table describes all the settings that are currently available. 
 
 
 | Configuration Settings | Description |
@@ -184,3 +161,79 @@ Sample event.json
 backtest only settings are safely ignored when used for liveinit
 
 
+# Backtesting
+Use backtesting for experimentation and validation of different configuation settings. Since this function is dependant upon the ticker data collected from synctickers, make sure that is running periodically to keep up to date. You should have about 2 weeks of historical data to start for any exchange/market_symbol that is configured in the Parameter Store.
+
+```shell
+ ./4-invoke.sh backtest ../events/my_event.json 
+7.25311553 @ 0.42735 Total: 212.50
+[INFO]  2021-06-24T04:04:53.892Z        992e4816-3b82-443c-97bb-6702b8070050    [20210527 21:00] Sold 497.25311553 @ 0.42735 Total: 212.50
+[INFO]  2021-06-24T04:04:53.909Z        992e4816-3b82-443c-97bb-6702b8070050    Limit Buy 497.25311553 @ 0.41897 Total: 208.33
+[INFO]  2021-06-24T04:04:53.910Z        992e4816-3b82-443c-97bb-6702b8070050    [20210527 22:00] Bought 497.25311553 @ 0.41897 Total: 208.33
+[INFO]  2021-06-24T04:04:53.910Z        992e4816-3b82-443c-97bb-6702b8070050    Limit Sell 497.25311553 @ 0.42735 Total: 212.50
+...
+[INFO]  2021-06-24T04:04:53.990Z        992e4816-3b82-443c-97bb-6702b8070050    >12 sell 0.43589 (208.33) <0/3> buybase 477.94417102 sellbase 487.50305444 [take 4.17/4.17] 212.50 None
+[INFO]  2021-06-24T04:04:53.990Z        992e4816-3b82-443c-97bb-6702b8070050    Total Quote: 2583.33333 Total Base: 984.75616997 @ 0.41410 (407.79) = 2991.12
+[INFO]  2021-06-24T04:04:53.990Z        992e4816-3b82-443c-97bb-6702b8070050    Transactions 18 (fees: 3.78) Profit 29.55/29.55
+[INFO]  2021-06-24T04:04:53.990Z        992e4816-3b82-443c-97bb-6702b8070050    state: active
+[INFO]  2021-06-24T04:04:53.990Z        992e4816-3b82-443c-97bb-6702b8070050    RUN TIME: 0:00:00.528851
+[INFO]  2021-06-24T04:04:53.990Z        992e4816-3b82-443c-97bb-6702b8070050    {'gbotid': '546bb667-d4a1-11eb-ad37-9114274aa649'}
+END RequestId: 992e4816-3b82-443c-97bb-6702b8070050
+REPORT RequestId: 992e4816-3b82-443c-97bb-6702b8070050  Duration: 530.27 ms     Billed Duration: 531 ms Memory Size: 256 MB     Max Memory Used: 116 MB
+XRAY TraceId: 1-60d40465-338a6b2b557f5cec2f31ca40       SegmentId: 6579fa2e2adf1ec4     Sampled: true
+
+{"gbotid": "546bb667-d4a1-11eb-ad37-9114274aa649"}
+
+```
+
+Repeat as neceesary, modifiying settings and see how those changes impact transactions and profit.
+
+# Running a Live Gridbot
+Once satisified with a configuration you can then use the same configuration to initialize a live grid bot and begin active tradiing.
+
+*Note* the init_market_order setting has not been implemented yet, so the account much have enough quote and base for the init to be successful. Use backtesting (using start and end times near now) to determine what the minimum amount of base and quote that are required, and manually buy/sell base if required.
+
+```shell
+ ./4-invoke.sh liveinit ../events/my_event.json 
+...
+{"gbotid": "cfcdcc07-d4a2-11eb-8ffc-efb2671e3833"}
+```
+
+Check the log for errors, and correct if necessary. If an issue occured before successfully completing an init, it may be necessary to manually cancel open orders that were created in the process. Take note of the gbotid that was output from the initlive (also in logs stored in Cloudwatch). The gbotid needs to be placed in the parameterstore for the liverun to discover.
+
+In the AWS console, goto the System Manager, then the Parameter Store menu item. Edit the "/yacgb/prod/gbotids" and replace or add the gbotid to the value. This is a list value, so multiple gbotids can be configured at a time. (if running locally, the System Manager/Parameter Store settings can be set locally as environmental variables, although only a single exchange, market_symbol, and gbot can be run at a time)
+
+You can manually run the liverun function manually to see if it works (pass it any event.json file, its contents are ignored)...
+
+```shell
+ ./4-invoke.sh liverun ../events/event.json 
+...
+```
+Similar to synctickers, we'll want to have this function run periodically. You'll need to manually create a trigger (Event Bridge) that will execute the lambda auatomatically every configured period. 1 minute is preferred, and can be done by setting the Schedule Expression to: rate(1 minute)
+
+That's it! Use Cloudwatch to check on status, as well as your exchange's trade interface. You should see the grid that is created, and as prices move up and down, new trades replaces old ones. 
+
+## Stopping a Live Gridbot
+1. Either stop the Event Bridge trigger AND/OR remove the gbotid(s) from the Parameter Store setting "/yacgb/prod/gbotids"
+2. Using your exchange's tradeing tool, manually cancel all open orders if there are any
+
+*Note:* currently, the Parameter Store is only read once on initiatialization of the lambda, therefore it is not deterministic when changing the "/yacgb/prod/gbotids" setting is applied with the Event Bridge trigger set. In the Lambda's configuration page, you can set a bogus environment parameter to force the Lambda to re-read Parameter Store settings. 
+
+
+## Deleting and Cleanup
+Use the script in the aws directory to delete the stack and cleanup most of the functions.
+
+```shell
+$ ./5-cleanup.sh
+Deleted yacgb stack.
+Delete deployment artifacts and bucket (yacgb-e7cccc733e0f6dac)? (y/n)y
+delete: s3://yacgb-e7cccc733e0f6dac/8fe9cf785d08943d9904b5e1c82d2c23
+delete: s3://yacgb-e7cccc733e0f6dac/be3a6ef10140b918018413f1a656b614
+remove_bucket: yacgb-e7cccc733e0f6dac
+Delete function log group (/aws/lambda/yacgb-synctickers-772VVOXEiVVr)? (y/n)y
+```
+
+Some things that yiou may need to deleted to remove all traces of this deployment:
+- Cloudwatch - remove all log groups associated with the yacgb application
+- System Manager - remove all the parameter store configuration starting with "/yacgb"
+- DynamoDB - delete the tables: OHLCV, Gbot, Market, and Orders (if they exist)
