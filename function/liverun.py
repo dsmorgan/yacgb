@@ -128,7 +128,7 @@ def lambda_handler(event, context):
                 #TODO: How do we retry this and check that it succeded?
                 x.gbot.state = x.gbot.state + '_sold_all'
                 #TODO we probably need to get the  amount to sell from adding up all of the sell limits in the grid. base_balance isn't correct
-                ttsell = x.gbot.total_sell_b()
+                ttsell = x.total_sell_b()
                 logger.info("State: %s Total To Sell %f" % (x.gbot.state, ttsell))
                 if round(ttsell, 4) > 0:
                     logger.info("Market Sell All %s (%f)" %(market_symbol, ttsell))
