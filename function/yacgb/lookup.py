@@ -5,6 +5,7 @@ from datetime import timezone
 import logging
 
 from model.ohlcv import OHLCV
+from yacgb.ohlcv_sync import key_time
 
 logger = logging.getLogger(__name__)
 
@@ -15,13 +16,19 @@ class OrderBookLookup:
         self.ddb = OHLCV()
         self.last_keyptimestamp = None
         self.last_time_item = None
+        self.key = None
     
     def getcandle(self, timeframe='1h', stime='20210317 21:10'):
-        self.key = self.exchange+'_'+self.market_symbol+'_'+timeframe
+        key = self.exchange+'_'+self.market_symbol+'_'+timeframe
+        if key != self.key:
+            self.key = key
+            self.last_keyptimestamp = None
+            
         ptime = datetime.datetime.strptime(stime, "%Y%m%d %H:%M").replace(tzinfo=timezone.utc)
         ptimestamp = int(ptime.timestamp()*1000)
         #if timeframe == '1h':
-        keyptime = ptime.replace(hour=0, minute=0, second=0, microsecond=0)
+        #keyptime = ptime.replace(hour=0, minute=0, second=0, microsecond=0)
+        keyptime = key_time(timeframe, ptime)
         keyptimestamp = int(keyptime.timestamp()*1000)
         self.open = 0
         self.close = 0

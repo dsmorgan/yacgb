@@ -41,3 +41,24 @@ class BacktestDateTime:
     def laterthan(self, anotherbdt=None):
         return(self.t > anotherbdt.t)
         
+    def dtstf(self, tf='1h'):
+        if tf == '1m':
+            return (self.t.strftime("%Y%m%d %H:%M"))
+        elif tf == '1h':
+            return (self.t.strftime("%Y%m%d %H:00"))
+        #elif tf == '1d'
+        return (self.t.strftime("%Y%m%d 00:00"))
+            
+    def addtf(self, tf='1h'):
+        if tf == '1m':
+            self.t = self.t + datetime.timedelta(minutes=1)
+        elif tf == '1h':
+            self.t = self.t + datetime.timedelta(hours=1)
+        else: #tf == '1d', increment a day if not 1m or 1h
+            self.t = self.t + datetime.timedelta(days=1)
+            
+        
+        
+        
+    
+        

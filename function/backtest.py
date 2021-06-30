@@ -33,9 +33,14 @@ def lambda_handler(event, context):
     qs = quote_symbol(config['market_symbol'])
     start = BacktestDateTime(config['backtest_start'])
     end = BacktestDateTime(config['backtest_end'])
+    timeframe = config['backtest_timeframe']
     lookup = OrderBookLookup(config['exchange'], config['market_symbol'])
-    #TODO: this shouldn't start at hour, necessarily
-    lookup.getcandle(stime=start.dtshour())
+    #If this returns zero, then might need to advance to see if we can find a valid OHLCV table entry
+    while end.laterthan(start):
+        lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
+        if lookup.open != 0:
+            break
+        start.addtf(timeframe)
     #Some configuration is dependant upon the initial value when the backtest starts, pass that and also some validation
     config = configsetup(config, lookup.open)
 
@@ -73,13 +78,13 @@ def lambda_handler(event, context):
     
     #### backtest run START
     while end.laterthan(start):
-        lookup.getcandle(stime=start.dtshour())
+        lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
         
-        x.backtest(lookup.open, start.dtshour())
-        x.backtest(lookup.low, start.dtshour())
-        x.backtest(lookup.high, start.dtshour())
-        x.backtest(lookup.close, start.dtshour())
-        start.addhour()
+        x.backtest(lookup.open, start.dtstf(timeframe))
+        x.backtest(lookup.low, start.dtstf(timeframe))
+        x.backtest(lookup.high, start.dtstf(timeframe))
+        x.backtest(lookup.close, start.dtstf(timeframe))
+        start.addtf(timeframe)
     x.save()    
     x.totals()
     #### backtest run END

@@ -20,7 +20,7 @@ def max_array_size(timeframe, year, month):
     #Unexpected result, return zero
     return (0)
     
-def rounded_down_time(timeframe, ct):
+def key_time(timeframe, ct):
     if timeframe == '1m':
         return (ct.replace(minute=0, second=0, microsecond=0))
     elif timeframe == '1h':
@@ -42,8 +42,8 @@ def save_candles(exch, ms, tf, ndt, candles):
     while x < len(candles):
         candle_time = datetime.datetime.fromtimestamp(candles[x][0]/1000, tz=timezone.utc)
         logger.debug("candle_time %s" % candle_time.strftime('%Y-%m-%d %H:%M:%S'))
-        
-        if (candle_time == rounded_down_time(tf, candle_time)):
+        #TODO: Ensure that the candle gets saved, even if the 1st entry is missing. This won't happen if the timestamp doesn't match the keytime
+        if (candle_time == key_time(tf, candle_time)):
             #create new entry
             ts = candle_time.strftime('%Y-%m-%d %H:%M:%S')
             max = max_array_size(tf,candle_time.year, candle_time.month)
