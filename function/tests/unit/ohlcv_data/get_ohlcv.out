@@ -1,0 +1,108 @@
+== binanceus_BTC/USD pytest_XXX1__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:42:56.216518+00:00
+Last OHLCV Time: 2021-07-05 03:42:00+00:00
+
+== binanceus_BTC/USD pytest_XXX1__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:42:56.651408+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== binanceus_BTC/USD pytest_XXX1__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:42:57.160768+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== kraken_BTC/USD pytest_XXX2__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:01.691181+00:00
+Last OHLCV Time: 2021-07-05 03:43:00+00:00
+
+== kraken_BTC/USD pytest_XXX2__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:04.813762+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== kraken_BTC/USD pytest_XXX2__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:07.816750+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== coinbasepro_BTC/USD pytest_XXX3__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:12.987529+00:00
+Last OHLCV Time: 2021-07-05 03:38:00+00:00
+
+== coinbasepro_BTC/USD pytest_XXX3__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:13.991084+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== coinbasepro_BTC/USD pytest_XXX3__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:14.995066+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== binanceus_ETH/USD pytest_YYY1__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:17.133988+00:00
+Last OHLCV Time: 2021-07-05 03:43:00+00:00
+
+== binanceus_ETH/USD pytest_YYY1__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:17.574654+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== binanceus_ETH/USD pytest_YYY1__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:18.062077+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== kraken_ETH/USD pytest_YYY2__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:22.608095+00:00
+Last OHLCV Time: 2021-07-05 03:43:00+00:00
+
+== kraken_ETH/USD pytest_YYY2__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:25.776986+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== kraken_ETH/USD pytest_YYY2__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:28.685865+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== coinbasepro_ETH/USD pytest_YYY3__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:33.860649+00:00
+Last OHLCV Time: 2021-07-05 03:39:00+00:00
+
+== coinbasepro_ETH/USD pytest_YYY3__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:34.858446+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== coinbasepro_ETH/USD pytest_YYY3__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:35.864721+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== binanceus_ADA/USD pytest_ZZZ1__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:38.155477+00:00
+Last OHLCV Time: 2021-07-05 03:43:00+00:00
+
+== binanceus_ADA/USD pytest_ZZZ1__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:38.462018+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== binanceus_ADA/USD pytest_ZZZ1__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:38.940930+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== kraken_ADA/USD pytest_ZZZ2__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:43.498039+00:00
+Last OHLCV Time: 2021-07-05 03:43:00+00:00
+
+== kraken_ADA/USD pytest_ZZZ2__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:46.586773+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== kraken_ADA/USD pytest_ZZZ2__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:49.577174+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+
+== coinbasepro_ADA/USD pytest_ZZZ3__USD 1m 660 ==
+Now Local Time: 2021-07-05 03:43:54.726457+00:00
+Last OHLCV Time: 2021-07-05 03:40:00+00:00
+
+== coinbasepro_ADA/USD pytest_ZZZ3__USD 1h 360 ==
+Now Local Time: 2021-07-05 03:43:55.743869+00:00
+Last OHLCV Time: 2021-07-05 03:00:00+00:00
+
+== coinbasepro_ADA/USD pytest_ZZZ3__USD 1d 62 ==
+Now Local Time: 2021-07-05 03:43:56.725687+00:00
+Last OHLCV Time: 2021-07-05 00:00:00+00:00
+

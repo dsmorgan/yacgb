@@ -11,3 +11,5 @@ urllib3==1.26.3
 jsonpickle==2.0.0
 ssm-cache==2.10
 testresources==2.0.1
+pandas==1.2.5
+stockstats==0.3.2

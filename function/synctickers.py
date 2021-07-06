@@ -24,7 +24,7 @@ psconf=yacgb_aws_ps()
 market_init()
 ohlcv_init()
 
-# load the sconfigured exchange from ccxt, load_markets is needed to initialize
+# load the configured exchange from ccxt, load_markets is needed to initialize
 myexch = {}
 for e in psconf.exch:
     myexch[e] = eval ('ccxt.%s ()' % e)
@@ -73,6 +73,7 @@ def lambda_handler(event, context):
             exchange_item.start = str(nowdt)
         #store the current minute timestamp(s) in LAST
         exchange_item.last_timestamp = int(thisminute.timestamp())
+        #TODO: should this be nowdt OR thisminute?
         exchange_item.last = str(nowdt)
      
         #TODO: refactor this as a loop     

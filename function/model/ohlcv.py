@@ -20,6 +20,12 @@ class OHLCV(Model):
     last = UnicodeAttribute()
     array = ListAttribute()
     
+    def to_dict(self):
+        rval = {}
+        for key in self.attribute_values:
+            rval[key] = self.__getattribute__(key)
+        return rval
+    
 def ohlcv_init():
     if not OHLCV.exists():
         OHLCV.create_table(read_capacity_units=10, write_capacity_units=10, wait=True)   

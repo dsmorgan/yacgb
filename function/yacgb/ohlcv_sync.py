@@ -20,6 +20,16 @@ def max_array_size(timeframe, year, month):
     #Unexpected result, return zero
     return (0)
     
+def valid_time(timeframe, ct):
+    if timeframe == '1m':
+        return (ct.replace(second=0, microsecond=0))
+    elif timeframe == '1h':
+        return (ct.replace(minute=0, second=0, microsecond=0))
+    elif timeframe == '1d':
+        return (ct.replace(hour=0, minute=0, second=0, microsecond=0))
+    #Unexpected result, return None
+    return (None)
+
 def key_time(timeframe, ct):
     if timeframe == '1m':
         return (ct.replace(minute=0, second=0, microsecond=0))
@@ -35,6 +45,7 @@ def save_candles(exch, ms, tf, ndt, candles):
     # Get minute/hour/day timeframe OHLCV candles data, grouped per hour/day/month in a table entry
     key = exch+'_'+ms+'_'+tf
     logger.debug("start of save_candles " + key)
+    candle_list = []
     # For each 1st field of the ohlcv candle, compare to the rounded hour value. If a 0 minute, 0 hour, or day 1
     #  match, then take up to the next 60/24/x days of a month entries and place into a single time_item.
     x = 0
@@ -56,13 +67,17 @@ def save_candles(exch, ms, tf, ndt, candles):
                 time_item = OHLCV(key, candles[x][0], timestamp_st=ts, array=candles[x:x+max], last=str(ndt))
                 #Log a new table entry
                 logger.info('N:' + key + ' ' + str(candles[x][0]) + ' ' + ts + ' ' + str(x) + ' ' + str(x+max) + ' actual:' + str(len(candles[x:x+max])))
+            candle_item=[]
+            candle_item.append(key)
+            candle_item.append(candles[x][0])
+            candle_list.append(candle_item)
             time_item.save()
             #increment to next block of candles
             x += max-1
         # increment to next candle
         x+=1
     logger.debug("end of save_candles " + key)
-    return
+    return (candle_list)
 
     
 class candle_limits:

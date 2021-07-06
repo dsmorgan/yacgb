@@ -32,6 +32,12 @@ class Market(Model):
     limits_price_max = NumberAttribute(null=True)
     limits_price_min = NumberAttribute(null=True)
     
+    def to_dict(self):
+        rval = {}
+        for key in self.attribute_values:
+            rval[key] = self.__getattribute__(key)
+        return rval
+    
 
 def market_init():
     if not Market.exists():

@@ -1,14 +1,170 @@
 ## https://github.com/dsmorgan/yacgb
 
 import datetime
-from datetime import timezone
+from datetime import timezone, timedelta
 import logging
 
+
 from model.ohlcv import OHLCV
-from yacgb.ohlcv_sync import key_time
+from model.market import Market
+from yacgb.ohlcv_sync import key_time, valid_time
 
 logger = logging.getLogger(__name__)
 
+class cacheItem:
+    def __init__(self, key, item, expire=True):
+        self.c_key = key
+        self.c_item = item
+        self.c_expire = expire
+        self.c_timestamp = datetime.datetime.now(timezone.utc)
+        
+    def __getattr__(self, attr):
+        return self.c_item[attr]
+        
+    def __str__(self):
+        return ("<cacheItem %s (c_expire: %s) %s>" % (self.c_key, self.c_expire, self.c_timestamp))
+        
+
+class ohlcvLookup:
+    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=32, ocache_maxsize=128):
+        self.mcache_expire_seconds = mcache_expire_seconds
+        self.ocache_expire_seconds = ocache_expire_seconds
+        self.mcache_maxsize = mcache_maxsize
+        self.ocache_maxsize = ocache_maxsize
+        self.mcache = {}
+        self.ocache = {}
+        
+    def __str__(self):
+        mstr = ''
+        ostr = ''
+        for x in self.mcache:
+            mstr += self.mcache[x].__str__() + '\n'
+        for x in self.ocache:
+            ostr += self.ocache[x].__str__() + '\n'
+        return ("<ohlcvLookup\n...mcache %d/%d (%f)\n%s...ocache %d/%d (%f)\n%s>" % 
+                (len(self.mcache), self.mcache_maxsize, self.mcache_expire_seconds, mstr,
+                len(self.ocache), self.ocache_maxsize, self.ocache_expire_seconds, ostr))
+        
+    def _expire_cache(self, cache, expire_seconds):
+        #go through each cache entry and expire if required
+        nowt = datetime.datetime.now(timezone.utc)
+        for ck in list(cache):
+            if cache[ck].c_expire and cache[ck].c_timestamp + timedelta(seconds=expire_seconds) < nowt:
+                print("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
+                logger.info("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
+                del(cache[ck])
+        return
+        
+    def _evict_cache(self, cache, maxsize):
+        #go through each cache entry and evict if required     
+        while len(cache) > maxsize:
+            oldest_ts = datetime.datetime.now(timezone.utc)
+            oldest = None
+            for ck in list(cache):
+                if cache[ck].c_timestamp < oldest_ts:
+                    oldest_ts = cache[ck].c_timestamp
+                    oldest = ck
+            print("cache evict: %s maxsize: %d" % (oldest, maxsize))
+            logger.warning("cache evict: %s maxsize: %d" % (oldest, maxsize))
+            del(cache[oldest])
+        return
+        
+    def get_market(self, exchange, market_symbol):
+        self._expire_cache(self.mcache, self.mcache_expire_seconds)
+        self._evict_cache(self.mcache, self.mcache_maxsize) 
+        
+        #get from cache
+        mkey = exchange + '_' + market_symbol
+        if mkey in self.mcache.keys():
+            print("get_market cache hit: %s" % mkey)
+            logger.info("get_market cache hit: %s" % mkey)
+            return self.mcache[mkey]
+        
+        #else get from dynamodb
+        #TODO: add rate-limiting
+        try:
+            mkt = Market.get(exchange, market_symbol)
+            print ("get_market cache miss: %s" % mkey)
+            logger.info("get_market cache miss: %s" % mkey)
+            #add something for caching?
+            self.mcache[mkey] = cacheItem(mkey, mkt.to_dict())
+            return self.mcache[mkey]
+        
+        #not in dynamodb either
+        except Market.DoesNotExist:
+            logger.warning("get_market not found: %s" % mkey)
+        return None
+    
+    def get_ohlcv(self, exchange, market_symbol, timeframe, ktimestamp):
+        self._expire_cache(self.ocache, self.ocache_expire_seconds)
+        self._evict_cache(self.ocache, self.ocache_maxsize) 
+        
+        #get from cache
+        okey = exchange + '_' + market_symbol + '_' + timeframe
+        #value passed is already a ktimestamp
+        #ktime = key_time(timeframe, stime)
+        #ktimestamp = int(ktime.timestamp()*1000)
+        oktkey = okey + '_' + str(ktimestamp)
+        if oktkey in self.ocache.keys():
+            print("get_ohlcv cache hit: %s" % oktkey)
+            logger.info("get_ohlcv cache hit: %s" % oktkey)
+            return self.ocache[oktkey]
+        
+        #else get from dynamodb
+        try:
+            o = OHLCV.get(okey, ktimestamp)
+            print("get_ohlcv cache miss: %s" % oktkey)
+            logger.info("get_ohlcv cache miss: %s" % oktkey)
+            #add something for caching?
+            self.ocache[oktkey] = cacheItem(oktkey, o.to_dict())
+            return self.ocache[oktkey]
+        
+        #not in dynamodb either
+        except OHLCV.DoesNotExist:
+            logger.warning("get_ohlcv not found: %s" % oktkey)
+        return None          
+
+    def get_candle(self, exchange, market_symbol, timeframe, stime):
+        #convert string time format to datatime, ensure that the time is valid for a given timeframe
+        ctime = valid_time(timeframe, datetime.datetime.strptime(stime, "%Y%m%d %H:%M").replace(tzinfo=timezone.utc))
+        ctimestamp = int(ctime.timestamp()*1000)
+        #determine timestamp key value based on timeframe (i.e. 1m, 1h, 1d)
+        keyctime = key_time(timeframe, ctime)
+        keyctimestamp = int(keyctime.timestamp()*1000)
+        ans = self.get_ohlcv(exchange, market_symbol, timeframe, keyctimestamp)
+        if ans != None:
+            for x in ans.array:
+                if x[0] == ctimestamp:
+                    resp = Candle(ctimestamp, x)
+                    print (resp)
+                    return resp
+        #We got through the entire array, and didn't find it OR the get_ohlcv failed
+        resp = Candle(ctimestamp)
+        logger.warning("get_candle not found: %s %s %s %s %s" % (exchange, market_symbol, timeframe, stime, resp))
+        return (resp)
+        
+    #def get_ohlcv_range(self, exchange, market_symbol, timeframe, stime, etime):
+        
+
+class Candle:
+    def __init__(self, candle_timestamp, candle_array=[0,0,0,0,0,0]):
+        if candle_array[0]==0:
+            self.timestamp = candle_timestamp
+            self.valid = False
+        else:
+            self.timestamp = candle_array[0]
+            self.valid = True
+        self.open = candle_array[1]
+        self.high = candle_array[2]
+        self.low = candle_array[3]
+        self.close = candle_array[4]
+        self.volume = candle_array[5]
+    def __str__(self):
+        dt = datetime.datetime.fromtimestamp(int(self.timestamp/1000), tz=timezone.utc)
+        dt_st = dt.strftime('%Y-%m-%d %H:%M')
+        return ("<Candle %s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dt_st, self.open, self.high, self.low, self.close, self.volume, self.valid))
+            
+#TODO: Remove this once migrated to 
 class OrderBookLookup:
     def __init__(self, exchange, market_symbol):
         self.exchange=exchange
