@@ -8,6 +8,7 @@ import logging
 from model.ohlcv import OHLCV
 from model.market import Market
 from yacgb.ohlcv_sync import key_time, valid_time
+from yacgb.bdt import BacktestDateTime
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class ohlcvLookup:
             o = OHLCV.get(okey, ktimestamp)
             print("get_ohlcv cache miss: %s" % oktkey)
             logger.info("get_ohlcv cache miss: %s" % oktkey)
-            #add something for caching?
+            #add something for caching? 
             self.ocache[oktkey] = cacheItem(oktkey, o.to_dict())
             return self.ocache[oktkey]
         
@@ -126,7 +127,8 @@ class ohlcvLookup:
 
     def get_candle(self, exchange, market_symbol, timeframe, stime):
         #convert string time format to datatime, ensure that the time is valid for a given timeframe
-        ctime = valid_time(timeframe, datetime.datetime.strptime(stime, "%Y%m%d %H:%M").replace(tzinfo=timezone.utc))
+        #ctime = valid_time(timeframe, datetime.datetime.strptime(stime, "%Y%m%d %H:%M").replace(tzinfo=timezone.utc))
+        ctime = valid_time(timeframe, datetime.datetime.strptime(stime+'+0000', "%Y%m%d %H:%M%z"))
         ctimestamp = int(ctime.timestamp()*1000)
         #determine timestamp key value based on timeframe (i.e. 1m, 1h, 1d)
         keyctime = key_time(timeframe, ctime)
@@ -143,7 +145,44 @@ class ohlcvLookup:
         logger.warning("get_candle not found: %s %s %s %s %s" % (exchange, market_symbol, timeframe, stime, resp))
         return (resp)
         
-    #def get_ohlcv_range(self, exchange, market_symbol, timeframe, stime, etime):
+    def get_candles(self, exchange, market_symbol, timeframe, stime, offset):
+        
+        start = BacktestDateTime(stime)
+        end = BacktestDateTime(stime)
+        if offset <= 0:
+            start.addtf(timeframe, offset)
+        else:
+            end.addtf(timeframe, offset)
+        current = start
+        resp = []
+        err_cnt = 0
+        last = 0
+        
+        while current.ccxt_timestamp_key(timeframe) <= end.ccxt_timestamp_key(timeframe):
+            ans = self.get_ohlcv(exchange, market_symbol, timeframe, current.ccxt_timestamp_key(timeframe))
+            if ans != None:
+                for x in ans.array:
+                    if x[0] >= start.ccxt_timestamp(timeframe) and x[0] <= end.ccxt_timestamp(timeframe):
+                        last = x[0]
+                        resp.append(x)
+            else:
+                err_cnt +=1
+            current.addkey(timeframe)
+            
+        if err_cnt > 0:
+            logger.warning("get_candles %d missing ohlcv items %s %s %s %s %s" % (err_cnt, exchange, market_symbol, timeframe, start, end))
+        if last != end.ccxt_timestamp(timeframe):
+            logger.warning("get_candles end array %d expected %d %s %s %s %s %s" % (last, end.ccxt_timestamp(timeframe), exchange, market_symbol, timeframe, start, end))
+            
+        return(resp)
+            
+                
+                    
+        
+        
+
+        
+        
         
 
 class Candle:
@@ -161,7 +200,7 @@ class Candle:
         self.volume = candle_array[5]
     def __str__(self):
         dt = datetime.datetime.fromtimestamp(int(self.timestamp/1000), tz=timezone.utc)
-        dt_st = dt.strftime('%Y-%m-%d %H:%M')
+        dt_st = dt.strftime('%Y%m%d %H:%M')
         return ("<Candle %s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dt_st, self.open, self.high, self.low, self.close, self.volume, self.valid))
             
 #TODO: Remove this once migrated to 

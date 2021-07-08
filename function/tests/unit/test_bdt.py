@@ -78,5 +78,70 @@ def test_bdt_day():
     z.addtf(timeframe)
     assert z.dtstf(timeframe) == '20210701 00:00'
     
+def test_bdt_offset():
+    timeframe='1m'
+    x = BacktestDateTime('20210626 17:00')
+    x.addtf(timeframe, 61)
+    assert x.dtstf(timeframe) == '20210626 18:01'
+    assert x.dtskey(timeframe) == '20210626 18:00'
+    timeframe='1h'
+    x = BacktestDateTime('20210626 17:00')
+    x.addtf(timeframe, 25)
+    assert x.dtstf(timeframe) == '20210627 18:00'
+    assert x.dtskey(timeframe) == '20210627 00:00'
+    timeframe='1d'
+    x = BacktestDateTime('20210626 17:00')
+    assert x.ccxt_timestamp(timeframe) == 1624665600000
+    x.addtf(timeframe, 31)
+    assert x.dtstf(timeframe) == '20210727 00:00'
+    assert x.ccxt_timestamp(timeframe) == 1627344000000
+    assert x.dtskey(timeframe) == '20210701 00:00'
+    
+def test_bdt_offset_negative():
+    timeframe='1m'
+    x = BacktestDateTime('20210626 17:00')
+    x.addtf(timeframe, -61)
+    assert x.dtstf(timeframe) == '20210626 15:59'
+    assert x.ccxt_timestamp(timeframe) == 1624723140000
+    assert x.dtskey(timeframe) == '20210626 15:00'
+    assert x.ccxt_timestamp_key(timeframe) == 1624719600000
+    timeframe='1h'
+    x = BacktestDateTime('20210626 17:00')
+    x.addtf(timeframe, -25)
+    assert x.dtskey(timeframe) == '20210625 00:00'
+    assert x.ccxt_timestamp_key(timeframe) == 1624579200000
+    assert x.dtstf(timeframe) == '20210625 16:00'
+    assert x.ccxt_timestamp(timeframe) == 1624636800000
+    x.addtf(timeframe, -2)
+    assert x.ccxt_timestamp_key(timeframe) == 1624579200000
+    assert x.ccxt_timestamp(timeframe) == 1624629600000
+    timeframe='1d'
+    x = BacktestDateTime('20210626 17:00')
+    x.addtf(timeframe, -31)
+    assert x.dtstf(timeframe) == '20210526 00:00'
+    assert x.ccxt_timestamp(timeframe) == 1621987200000
+    assert x.dtskey(timeframe) == '20210501 00:00' 
+    assert x.ccxt_timestamp_key(timeframe) == 1619827200000
+    x.addkey(timeframe)
+    assert x.dtskey(timeframe) == '20210601 00:00' 
+    assert x.dtstf(timeframe) == '20210626 00:00'
 
-   
+def test_bdt_offset_day_corner():
+    timeframe='1d'
+    x = BacktestDateTime('20210531 17:23')
+    x.addkey(timeframe)
+    assert x.dtskey(timeframe) == '20210601 00:00'
+    assert x.dtstf(timeframe) == '20210630 00:00'
+    timeframe='1m'
+    assert x.dtstf(timeframe) == '20210630 17:23'
+    timeframe='1d'
+    y = BacktestDateTime('20201231 04:20')
+    y.addkey(timeframe, offset=2)
+    assert y.dtstf(timeframe) == '20210228 00:00'
+    
+    
+    
+    
+    
+    
+    

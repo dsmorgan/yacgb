@@ -156,7 +156,7 @@ The following table describes all the settings that are currently available.
 | init_market_order | (optional) Not implemented yet | 
 | backtest_start | (optional, default: <now>, backtest only) Backtest start timestamp in UTC, using YYYYMMDD HH:MM format, e.g. 20210526 19:00 |
 | backtest_end  | (optional, default: <now>, backtest only) Backtest end timestamp in UTC, using YYYYMMDD HH:MM format, e.g. 20210528 01:00 |
-| backtest_timeframe | (optional, default: 1h, backtest only) Not implemented yet |
+| backtest_timeframe | (optional, default: 1h, backtest only) determines what timeframe to use in backtesting (1m | 1h | 1d) |
 
 backtest only settings are safely ignored when used for liveinit
 

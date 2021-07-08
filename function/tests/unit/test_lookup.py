@@ -208,7 +208,18 @@ def test_ohlcvLookup_ohlcv(setup_ohlcv):
     assert t.valid == True
     assert t.close == 1.4654
     
+@local_dynamo_avail
+def test_ohlcvLookup_getcandles(setup_ohlcv):
+    x = ohlcvLookup(1,1,10,10)
+ 
+    exchange = setup_ohlcv[0][0].split('_',2)[0]
+    market_symbol = setup_ohlcv[0][0].split('_',2)[1]
+    timeframe = setup_ohlcv[0][0].split('_',2)[2]
+    stime = setup_ohlcv[0][1]
     
+    y = x.get_candles(exchange, market_symbol, timeframe, '20210704 03:00', 100)
+    
+    assert len(y) == 100
         
         
     
