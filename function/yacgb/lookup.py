@@ -145,15 +145,15 @@ class ohlcvLookup:
         logger.warning("get_candle not found: %s %s %s %s %s" % (exchange, market_symbol, timeframe, stime, resp))
         return (resp)
         
-    def get_candles(self, exchange, market_symbol, timeframe, stime, offset):
+    def get_candles(self, exchange, market_symbol, timeframe, stime, count):
         
         start = BacktestDateTime(stime)
         end = BacktestDateTime(stime)
-        if offset <= 0:
-            start.addtf(timeframe, offset)
+        if count < 0:
+            start.addtf(timeframe, count+1)
         else:
-            end.addtf(timeframe, offset)
-        current = start
+            end.addtf(timeframe, count-1)
+        current = BacktestDateTime(start.dtstf(timeframe))
         resp = []
         err_cnt = 0
         last = 0
@@ -169,22 +169,17 @@ class ohlcvLookup:
                 err_cnt +=1
             current.addkey(timeframe)
             
+        if len(resp) != abs(count):
+            logger.warning ("get_candles expected %d but only found %d %s %s %s %s %s" % (abs(count), len(resp), exchange, market_symbol, timeframe, start, end))
         if err_cnt > 0:
+            #TODO: need a test case for this
             logger.warning("get_candles %d missing ohlcv items %s %s %s %s %s" % (err_cnt, exchange, market_symbol, timeframe, start, end))
         if last != end.ccxt_timestamp(timeframe):
-            logger.warning("get_candles end array %d expected %d %s %s %s %s %s" % (last, end.ccxt_timestamp(timeframe), exchange, market_symbol, timeframe, start, end))
-            
+            logger.warning("get_candles end array %d expected %d (%fs) %s %s %s %s %s" % (last, end.ccxt_timestamp(timeframe), 
+                        (end.ccxt_timestamp(timeframe)-last)/1000, exchange, market_symbol, timeframe, start, end))
         return(resp)
             
-                
-                    
-        
-        
-
-        
-        
-        
-
+            
 class Candle:
     def __init__(self, candle_timestamp, candle_array=[0,0,0,0,0,0]):
         if candle_array[0]==0:

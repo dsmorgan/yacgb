@@ -217,19 +217,20 @@ def test_ohlcvLookup_getcandles(setup_ohlcv):
     timeframe = setup_ohlcv[0][0].split('_',2)[2]
     stime = setup_ohlcv[0][1]
     
-    y = x.get_candles(exchange, market_symbol, timeframe, '20210704 03:00', 100)
-    
+    y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', -100)
     assert len(y) == 100
+    assert datetime.datetime.fromtimestamp(y[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
+    
+    y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', 100)
+    assert len(y) == 100
+    assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
         
-        
+    y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', 1)
+    assert len(y) == 1
+    assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
     
+    y = x.get_candles(exchange, market_symbol, '1d', '20210530 03:00', 50)
+    assert len(y) == 35
+    assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210601 00:00'
+    assert datetime.datetime.fromtimestamp(y[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210705 00:00'
     
-
-    
-    
-    
-    
-    
-    
-    
-     

@@ -139,7 +139,10 @@ def test_bdt_offset_day_corner():
     y.addkey(timeframe, offset=2)
     assert y.dtstf(timeframe) == '20210228 00:00'
     
-    
+def test_bdt_now():
+    x = BacktestDateTime()
+    y = BacktestDateTime()
+    assert x.__str__() == y.__str__()
     
     
     
