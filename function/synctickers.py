@@ -1,11 +1,11 @@
 ## https://github.com/dsmorgan/yacgb
 
 import ccxt
+import time
 import datetime
 from datetime import timezone
 import os
 import logging
-import time
 import random
 
 from yacgb.awshelper import yacgb_aws_ps

@@ -81,7 +81,8 @@ def test_ohlcvLookup_market(setup_market):
 def setup_ohlcv():
     ohlcv_init()
     ohlcv_list=[]
-    nowdt = datetime.datetime.now(timezone.utc)
+    #nowdt = datetime.datetime.now(timezone.utc)
+    nowdt = datetime.datetime.now(timezone.utc) - datetime.timedelta(hours=20)
     ohlcv_path = "function/tests/unit/ohlcv_data/"
     included_extensions = ['.csv']
     file_names = [fn for fn in os.listdir(ohlcv_path)

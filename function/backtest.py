@@ -4,13 +4,13 @@ import ccxt
 import time
 import datetime
 from datetime import timezone
-import logging
 import os
+import logging
 import sys
 
 #from model.orders import Orders
 from yacgb.awshelper import yacgb_aws_ps
-from yacgb.lookup import OrderBookLookup
+from yacgb.lookup import ohlcvLookup
 from yacgb.bdt import BacktestDateTime
 from yacgb.gbotrunner import GbotRunner
 from yacgb.util import base_symbol, quote_symbol, event2config, configsetup
@@ -22,6 +22,8 @@ logger.setLevel(logging.INFO)
 logger.info("CCXT version: %s" % ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
+#OHLCV table lookup cache
+olcache = ohlcvLookup()
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
@@ -34,10 +36,11 @@ def lambda_handler(event, context):
     start = BacktestDateTime(config['backtest_start'])
     end = BacktestDateTime(config['backtest_end'])
     timeframe = config['backtest_timeframe']
-    lookup = OrderBookLookup(config['exchange'], config['market_symbol'])
+    #lookup = OrderBookLookup(config['exchange'], config['market_symbol'])
     #If this returns zero, then might need to advance to see if we can find a valid OHLCV table entry
     while end.laterthan(start):
-        lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
+        #lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
+        lookup = olcache.get_candle(config['exchange'], config['market_symbol'], timeframe, start.dtstf(timeframe))
         if lookup.open != 0:
             break
         start.addtf(timeframe)
@@ -78,7 +81,8 @@ def lambda_handler(event, context):
     
     #### backtest run START
     while end.laterthan(start):
-        lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
+        #lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
+        lookup = olcache.get_candle(config['exchange'], config['market_symbol'], timeframe, start.dtstf(timeframe))
         
         x.backtest(lookup.open, start.dtstf(timeframe))
         x.backtest(lookup.low, start.dtstf(timeframe))

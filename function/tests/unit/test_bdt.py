@@ -144,6 +144,20 @@ def test_bdt_now():
     y = BacktestDateTime()
     assert x.__str__() == y.__str__()
     
+def test_bdt_altformat():
+    x = BacktestDateTime()
+    y = BacktestDateTime("2021-07-13 02:39:32.467951+00:00")
+    assert x.laterthan(y) == True
+    assert y.laterthan(x) == False
+    
+def test_bdt_timestamp():
+    ts = 1624723140000
+    tf = '1m'
+    x = BacktestDateTime(timestamp=ts)
+    assert x.ccxt_timestamp(tf) == ts
+    
+    
+    
     
     
     

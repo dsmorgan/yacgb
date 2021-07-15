@@ -7,7 +7,7 @@ import logging
 
 from model.ohlcv import OHLCV
 from model.market import Market
-from yacgb.ohlcv_sync import key_time, valid_time
+from yacgb.ohlcv_sync import key_time, valid_time, max_array_size
 from yacgb.bdt import BacktestDateTime
 
 logger = logging.getLogger(__name__)
@@ -51,21 +51,21 @@ class ohlcvLookup:
         nowt = datetime.datetime.now(timezone.utc)
         for ck in list(cache):
             if cache[ck].c_expire and cache[ck].c_timestamp + timedelta(seconds=expire_seconds) < nowt:
-                print("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
+                #print("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
                 logger.info("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
                 del(cache[ck])
         return
         
     def _evict_cache(self, cache, maxsize):
         #go through each cache entry and evict if required     
-        while len(cache) > maxsize:
+        while len(cache) >= maxsize:
             oldest_ts = datetime.datetime.now(timezone.utc)
             oldest = None
             for ck in list(cache):
                 if cache[ck].c_timestamp < oldest_ts:
                     oldest_ts = cache[ck].c_timestamp
                     oldest = ck
-            print("cache evict: %s maxsize: %d" % (oldest, maxsize))
+            #print("cache evict: %s maxsize: %d" % (oldest, maxsize))
             logger.warning("cache evict: %s maxsize: %d" % (oldest, maxsize))
             del(cache[oldest])
         return
@@ -77,7 +77,7 @@ class ohlcvLookup:
         #get from cache
         mkey = exchange + '_' + market_symbol
         if mkey in self.mcache.keys():
-            print("get_market cache hit: %s" % mkey)
+            #print("get_market cache hit: %s" % mkey)
             logger.info("get_market cache hit: %s" % mkey)
             return self.mcache[mkey]
         
@@ -85,7 +85,7 @@ class ohlcvLookup:
         #TODO: add rate-limiting
         try:
             mkt = Market.get(exchange, market_symbol)
-            print ("get_market cache miss: %s" % mkey)
+            #print ("get_market cache miss: %s" % mkey)
             logger.info("get_market cache miss: %s" % mkey)
             #add something for caching?
             self.mcache[mkey] = cacheItem(mkey, mkt.to_dict())
@@ -107,17 +107,43 @@ class ohlcvLookup:
         #ktimestamp = int(ktime.timestamp()*1000)
         oktkey = okey + '_' + str(ktimestamp)
         if oktkey in self.ocache.keys():
-            print("get_ohlcv cache hit: %s" % oktkey)
+           #print("get_ohlcv cache hit: %s" % oktkey)
             logger.info("get_ohlcv cache hit: %s" % oktkey)
             return self.ocache[oktkey]
         
         #else get from dynamodb
         try:
             o = OHLCV.get(okey, ktimestamp)
-            print("get_ohlcv cache miss: %s" % oktkey)
+            #print("get_ohlcv cache miss: %s" % oktkey)
             logger.info("get_ohlcv cache miss: %s" % oktkey)
-            #add something for caching? 
-            self.ocache[oktkey] = cacheItem(oktkey, o.to_dict())
+            e = True
+            # check that:
+            # 1) o.array is full (need to look at timeframe and ktimestamp to determine how many elements that should be)
+            # 2) o.array[-1][0] timstamp is earlier then 1 minute/1 hour/1 day ago (or greater then market )
+            # 3) 2 minutes ago is later than o.last 
+            # 4) o.last - 1 minute/1 hour/1 day (based on timeframe) is later then o.array[-1][0]
+            # If 1 & 2 or 3 & 4 are True, then expire should equal false
+            key_btdt = BacktestDateTime(timestamp=ktimestamp)
+            array_last_btdt = BacktestDateTime(timestamp=o.array[-1][0])
+            now_tf_ago = BacktestDateTime()
+            now_tf_ago.addtf(timeframe, -1)
+            if len(o.array) == max_array_size(timeframe, key_btdt.t.year, key_btdt.t.month) and now_tf_ago.laterthan(array_last_btdt):
+                #print ("cache set: 1 and 2 are true, no cache expire")
+                logger.info ("cache set: 1 and 2 are true, no cache expire")
+                e = False
+                
+            last_btdt = BacktestDateTime(o.last)
+            now_twomin_ago = BacktestDateTime()
+            now_twomin_ago.addmin(-2)
+            last_btdt_tf = BacktestDateTime(o.last)
+            last_btdt_tf.addtf(timeframe, -1)
+            if now_twomin_ago.laterthan(last_btdt) and last_btdt_tf.laterthan(array_last_btdt):
+                #print ("cache set: 3 & 4 are true, no cache expire")
+                logger.info ("cache set: 3 & 4 are true, no cache expire")
+                e = False
+            
+            self.ocache[oktkey] = cacheItem(oktkey, o.to_dict(), expire=e)
+
             return self.ocache[oktkey]
         
         #not in dynamodb either
@@ -138,7 +164,7 @@ class ohlcvLookup:
             for x in ans.array:
                 if x[0] == ctimestamp:
                     resp = Candle(ctimestamp, x)
-                    print (resp)
+                    #print (resp)
                     return resp
         #We got through the entire array, and didn't find it OR the get_ohlcv failed
         resp = Candle(ctimestamp)
