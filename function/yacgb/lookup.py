@@ -214,6 +214,7 @@ class Candle:
         else:
             self.timestamp = candle_array[0]
             self.valid = True
+        self.candle_array = candle_array
         self.open = candle_array[1]
         self.high = candle_array[2]
         self.low = candle_array[3]

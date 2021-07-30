@@ -23,21 +23,23 @@ olcache = ohlcvLookup()
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
+    emlist=['binanceus:BNB/USD', 'coinbasepro:ETH/USD', 'kraken:LINK/USD']
     #### tickerstats run START
-    random.shuffle(psconf.market_list)
-    logger.info("exchange:market %s" % str(psconf.market_list))
-    for x in psconf.market_list:
+    #random.shuffle(psconf.market_list)
+    #logger.info("exchange:market %s" % str(psconf.market_list))
+    logger.info("exchange:market %s" % str(emlist))
+    #for x in psconf.market_list:
+    for x in emlist:
         exchange = x.split(':', 1)[0]
         market_symbol = x.split(':', 1)[1]
         timeframe = '1m'
         nowbdt = BacktestDateTime()
         lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -300)
-        logger.info("%s %s %s" %(exchange, market_symbol, lookup))
+        last_bdt = BacktestDateTime(timestamp=lookup[-1][0])
+        logger.info("%s %s %s diffsec: %f" %(exchange, market_symbol, lookup[-1], last_bdt.diffsec(nowbdt)))
         
     
-    
-    
-    logger.info(olcache)
+    #logger.info(olcache)
     #### tickerstats run END
     run_end = datetime.datetime.now(timezone.utc)
     logger.info('RUN TIME: %s', str(run_end-run_start))
@@ -61,7 +63,7 @@ if __name__ == "__main__":
         except Exception:
             logging.exception("Fatal error in main loop")
             error_count+=1
-        sleep_time = 60 - (time.time()-11) % 60
+        sleep_time = 60 - (time.time()+13) % 60
         logging.info("sleeping %f error count %d" %(sleep_time, error_count))
         time.sleep(sleep_time)
 

@@ -54,13 +54,14 @@ def lambda_handler(event, context):
         bs = base_symbol(market_symbol)
         qs = quote_symbol(market_symbol)
         
-    
-        #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
-        corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
-        logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
-        
+        corders =[]
         closed_list=[]
         reset_list=[]
+        
+        if x.gbot.state == 'active':
+            #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
+            corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
+            logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
         
         #Look at closed orders, and match against what is in gbot
         for corder in corders:
@@ -158,9 +159,7 @@ def lambda_handler(event, context):
         
         #TODO: set timestamp as well, so to check since last timestamp found. Or is that even possible?
         
-        #TODO: Only print the grid if we've changed something.
-        
-        #TODO: Only print the grid if we've changed something.
+        # Only print the grid if we've changed something.
         if (len(closed_list) + len (reset_list) > 0):
             x.totals()
         

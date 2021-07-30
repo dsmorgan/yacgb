@@ -10,13 +10,20 @@ logger = logging.getLogger(__name__)
 
 class BacktestDateTime:
     
-    def __init__(self,timestring=None):
-        if timestring == None:
+    def __init__(self,timestring=None,timestamp=None):
+        if timestring == None and timestamp == None:
             # we'll use now in the absence of a timestring
             self.t = datetime.datetime.now(timezone.utc)
-        else:
-            # parse the format assuming like this '20210317 21:00'
-            self.t = datetime.datetime.strptime(timestring+'+0000', "%Y%m%d %H:%M%z")
+        elif timestring != None:
+            try:
+                # parse the format assuming like this '20210317 21:00'
+                self.t = datetime.datetime.strptime(timestring+'+0000', "%Y%m%d %H:%M%z")
+            except ValueError:
+                # try parse an alternate format assuming like this '2021-03-17 21:00:00.000000+00:00'
+                self.t = datetime.datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S.%f%z")
+        else: #timestamp != None
+            self.t = datetime.datetime.fromtimestamp(timestamp/1000, tz=timezone.utc)
+        
         logger.debug("%s %s" %(str(self.t), str(self.t.tzinfo)))
     
     def __str__(self):
@@ -36,6 +43,9 @@ class BacktestDateTime:
         
     def laterthan(self, anotherbdt=None):
         return(self.t > anotherbdt.t)
+        
+    def diffsec(self, anotherbdt=None):
+        return ((self.t-anotherbdt.t).total_seconds())
         
     def dtstf(self, tf='1h'):
         if tf == '1m':

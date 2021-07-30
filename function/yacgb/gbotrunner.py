@@ -20,7 +20,7 @@ class GbotRunner:
             try:
                 self.gbot = Gbot.get(gbotid)
                 #self.grid_array = jsonpickle.decode(self.gbot.grid)
-                logger.info("Lookup existing gbot, gbotid: " + gbotid)
+                logger.info("Lookup existing gbot, gbotid: " + gbotid + " state: " + self.gbot.state)
             except Gbot.DoesNotExist:
                 logger.error('Unable to find gbot, gbotid: ' + gbotid)
                 exit()

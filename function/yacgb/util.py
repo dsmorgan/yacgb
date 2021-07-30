@@ -31,7 +31,6 @@ def get_os_env(env, required=True, encrypted=False):
         exit()
     return (var)
     
-    
 def better_bool(s):
     if isinstance(s, bool):
         return s

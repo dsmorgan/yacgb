@@ -156,7 +156,11 @@ def test_bdt_timestamp():
     x = BacktestDateTime(timestamp=ts)
     assert x.ccxt_timestamp(tf) == ts
     
-    
+def test_bdt_diffsec():
+    x = BacktestDateTime('20210531 17:23')
+    y = BacktestDateTime('20210531 17:25')
+    assert x.diffsec(y) == -120
+    assert y.diffsec(x) == 120
     
     
     
