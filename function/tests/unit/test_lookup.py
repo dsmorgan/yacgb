@@ -4,7 +4,7 @@ import pytest
 import os, datetime, time
 from datetime import timezone
 
-from yacgb.lookup import ohlcvLookup
+from yacgb.lookup import ohlcvLookup, Candles
 from yacgb.ohlcv_sync import save_candles, key_time
 from model.market import Market, market_init
 from model.ohlcv import OHLCV, ohlcv_init
@@ -234,4 +234,25 @@ def test_ohlcvLookup_getcandles(setup_ohlcv):
     assert len(y) == 35
     assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210601 00:00'
     assert datetime.datetime.fromtimestamp(y[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210705 00:00'
+    
+def test_Candles():
+    x = Candles()
+    print (x)
+    assert x.open == 0
+    assert x.high == 0
+    assert x.low == 0
+    assert x.close == 0
+    assert x.volume == 0
+    x.append([1620950400000,4.2,10,4.0001,5,100.3])
+    x.append([1621036800000,5,7,5,6,1000.1])
+    x.append([1621123200000,6,12.334,6,11.33,500.1])
+    print(x)
+    assert x.open == 4.2
+    assert x.high == 12.334
+    assert x.low == 4.0001
+    assert x.close == 11.33
+    assert x.volume == 1600.5
+    
+    
+    
     

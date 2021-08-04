@@ -224,59 +224,57 @@ class Candle:
         dt = datetime.datetime.fromtimestamp(int(self.timestamp/1000), tz=timezone.utc)
         dt_st = dt.strftime('%Y%m%d %H:%M')
         return ("<Candle %s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dt_st, self.open, self.high, self.low, self.close, self.volume, self.valid))
-            
-#TODO: Remove this once migrated to 
-class OrderBookLookup:
-    def __init__(self, exchange, market_symbol):
-        self.exchange=exchange
-        self.market_symbol=market_symbol
-        self.ddb = OHLCV()
-        self.last_keyptimestamp = None
-        self.last_time_item = None
-        self.key = None
-    
-    def getcandle(self, timeframe='1h', stime='20210317 21:10'):
-        key = self.exchange+'_'+self.market_symbol+'_'+timeframe
-        if key != self.key:
-            self.key = key
-            self.last_keyptimestamp = None
-            
-        ptime = datetime.datetime.strptime(stime, "%Y%m%d %H:%M").replace(tzinfo=timezone.utc)
-        ptimestamp = int(ptime.timestamp()*1000)
-        #if timeframe == '1h':
-        #keyptime = ptime.replace(hour=0, minute=0, second=0, microsecond=0)
-        keyptime = key_time(timeframe, ptime)
-        keyptimestamp = int(keyptime.timestamp()*1000)
-        self.open = 0
-        self.close = 0
-        self.high = 0
-        self.low = 999999
-        self.volume = 0
-        self.cnt = 0
-
-        if (keyptimestamp == self.last_keyptimestamp):
-            #Prevent another query to the database, the record we were looking for is already in this object (last_time_item)
-            time_item = self.last_time_item
-        else:
-            try:
-                time_item = OHLCV.get(self.key, keyptimestamp)
-                self.last_time_item = time_item
-                self.last_keyptimestamp = keyptimestamp
-                
-            except OHLCV.DoesNotExist:
-                logger.warn("Not found in table key: %s (%s %s %s %s)" %(str(self.key), str(keyptime), str(keyptimestamp), str(ptime), str(ptimestamp)))
-                self.low=0
-                return
-
-        for x in time_item.array:
-           if x[0] == ptimestamp:
-                self.open = x[1]
-                self.high = x[2]
-                self.low = x[3]
-                self.close = x[4]
-                self.volume = x[5]
-                self.cnt = 1
-                return
-        logger.warn("Not found in array: %s (%s %s %s %s)" %(str(self.key), str(keyptime), str(keyptimestamp), str(ptime), str(ptimestamp)))
-        self.low=0
         
+        
+class Candles:
+    def __init__(self, candles_array=[]):
+        if len(candles_array)==0:
+            self.valid = False
+            self.candles_array = [[0,0,0,0,0,0]]
+        else:
+            self.valid = True
+            self.candles_array = candles_array
+
+    def append(self, candle_array):
+        if self.valid == False:
+            self.candles_array = []
+            self.valid = True
+        self.candles_array.append(candle_array)
+       
+    @property     
+    def open(self):
+        return self.candles_array[0][1]
+    
+    @property    
+    def high(self):
+        ret = self.candles_array[0][2]
+        for c in self.candles_array:
+            if c[2] > ret:
+                ret = c[2]
+        return ret
+    
+    @property    
+    def low(self):
+        ret = self.candles_array[0][3]
+        for c in self.candles_array:
+            if c[3] < ret:
+                ret = c[3]
+        return ret
+    
+    @property    
+    def close(self):
+        return self.candles_array[-1][4]
+    
+    @property    
+    def volume(self):
+        ret = 0
+        for c in self.candles_array:
+            ret += c[5]
+        return ret
+        
+    def __str__(self):
+        dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
+        dts_st = dts.strftime('%Y%m%d %H:%M')
+        dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
+        dte_st = dte.strftime('%Y%m%d %H:%M')
+        return ("<Candles s-%s e-%s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dts_st, dte_st, self.open, self.high, self.low, self.close, self.volume, self.valid))
