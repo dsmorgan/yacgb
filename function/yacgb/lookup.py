@@ -180,7 +180,7 @@ class ohlcvLookup:
         else:
             end.addtf(timeframe, count-1)
         current = BacktestDateTime(start.dtstf(timeframe))
-        resp = []
+        resp = Candles()
         err_cnt = 0
         last = 0
         
@@ -195,8 +195,8 @@ class ohlcvLookup:
                 err_cnt +=1
             current.addkey(timeframe)
             
-        if len(resp) != abs(count):
-            logger.warning ("get_candles expected %d but only found %d %s %s %s %s %s" % (abs(count), len(resp), exchange, market_symbol, timeframe, start, end))
+        if len(resp.candles_array) != abs(count):
+            logger.warning ("get_candles expected %d but only found %d %s %s %s %s %s" % (abs(count), len(resp.candles_array), exchange, market_symbol, timeframe, start, end))
         if err_cnt > 0:
             #TODO: need a test case for this
             logger.warning("get_candles %d missing ohlcv items %s %s %s %s %s" % (err_cnt, exchange, market_symbol, timeframe, start, end))
@@ -271,7 +271,27 @@ class Candles:
         for c in self.candles_array:
             ret += c[5]
         return ret
+    
+    @property
+    def wavg_close(self):
+        t = 0
+        v = 0
+        for c in self.candles_array:
+            t += c[4] * c[5]
+            v += c[5]
+        if v == 0:
+            return 0
+        return (t/v)
+    
+    def avg_volume(self, trim=True):
+        if not trim or len(self.candles_array) < 2:
+            return (self.volume/len(self.candles_array))
+        a = 0
+        for c in self.candles_array[:-1]:
+            a += c[5]
+        return (a/len(self.candles_array[:-1]))
         
+     
     def __str__(self):
         dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
         dts_st = dts.strftime('%Y%m%d %H:%M')

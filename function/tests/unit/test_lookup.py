@@ -219,21 +219,29 @@ def test_ohlcvLookup_getcandles(setup_ohlcv):
     stime = setup_ohlcv[0][1]
     
     y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', -100)
-    assert len(y) == 100
-    assert datetime.datetime.fromtimestamp(y[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
+    assert len(y.candles_array) == 100
+    assert datetime.datetime.fromtimestamp(y.candles_array[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
+    assert y.open == 1988.19
+    assert y.high == 2145.0
+    assert y.low == 1715.0
+    assert y.close == 2104.71
+    assert y.volume == 326290.26410245977
+    assert y.avg_volume() == 3283.2222263449476
+    assert y.avg_volume(False) == 3262.902641024598
+    assert y.wavg_close == 1902.9490168208108
     
     y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', 100)
-    assert len(y) == 100
-    assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
+    assert len(y.candles_array) == 100
+    assert datetime.datetime.fromtimestamp(y.candles_array[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
         
     y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', 1)
-    assert len(y) == 1
-    assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
+    assert len(y.candles_array) == 1
+    assert datetime.datetime.fromtimestamp(y.candles_array[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
     
     y = x.get_candles(exchange, market_symbol, '1d', '20210530 03:00', 50)
-    assert len(y) == 35
-    assert datetime.datetime.fromtimestamp(y[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210601 00:00'
-    assert datetime.datetime.fromtimestamp(y[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210705 00:00'
+    assert len(y.candles_array) == 35
+    assert datetime.datetime.fromtimestamp(y.candles_array[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210601 00:00'
+    assert datetime.datetime.fromtimestamp(y.candles_array[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210705 00:00'
     
 def test_Candles():
     x = Candles()
@@ -243,6 +251,9 @@ def test_Candles():
     assert x.low == 0
     assert x.close == 0
     assert x.volume == 0
+    assert x.avg_volume() == 0
+    assert x.avg_volume(trim=False) == 0
+    assert x.wavg_close == 0
     x.append([1620950400000,4.2,10,4.0001,5,100.3])
     x.append([1621036800000,5,7,5,6,1000.1])
     x.append([1621123200000,6,12.334,6,11.33,500.1])
@@ -252,6 +263,9 @@ def test_Candles():
     assert x.low == 4.0001
     assert x.close == 11.33
     assert x.volume == 1600.5
+    assert x.avg_volume() == 550.2
+    assert x.avg_volume(trim=False) == 533.5
+    assert x.wavg_close == 7.6027697594501715
     
     
     
