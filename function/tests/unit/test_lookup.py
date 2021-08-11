@@ -266,6 +266,34 @@ def test_Candles():
     assert x.avg_volume() == 550.2
     assert x.avg_volume(trim=False) == 533.5
     assert x.wavg_close == 7.6027697594501715
+    x.update([[1621123200000,6,12.55,6,12.55,600.1]])
+    print(x)
+    assert x.high == 12.55
+    assert x.volume == 1700.5
+    x.update([[1621036800000,5,7,5,6,1000.1],[1621123200000,6,12.334,6,11.33,500.1]])
+    print(x)
+    assert x.open == 4.2
+    assert x.high == 12.334
+    assert x.low == 4.0001
+    assert x.close == 11.33
+    assert x.volume == 1600.5
+    assert x.avg_volume() == 550.2
+    assert x.avg_volume(trim=False) == 533.5
+    assert x.wavg_close == 7.6027697594501715
+    x.update([[1621123200000,6,12.55,6,12.55,600.1], [1621209600000,12.50,12.50,3.33,3.33,10000.1]])
+    print(x)
+    assert x.open == 4.2
+    assert x.high == 12.55
+    assert x.low == 3.33
+    assert x.close == 3.33
+    assert x.volume == 11700.6
+    assert x.avg_volume() == 566.8333333333334
+    assert x.avg_volume(trim=False) == 2925.15
+    assert x.wavg_close == 4.045406902210143
+    
+    
+    
+    
     
     
     

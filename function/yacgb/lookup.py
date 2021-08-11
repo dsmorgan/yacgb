@@ -240,7 +240,18 @@ class Candles:
             self.candles_array = []
             self.valid = True
         self.candles_array.append(candle_array)
-       
+        
+    def update(self, candles_array):
+        for c in candles_array:
+            if c[0] > self.candles_array[-1][0]:
+                # if the timestamp of the candle is later then the last timestamp in the current list, then append it to the list
+                self.append(c)
+            else:
+                # otherwise, we need to check if the candle has a matching timestamp, so that we can replace it
+                for i, v in enumerate(self.candles_array):
+                    if v[0] == c[0]:
+                        self.candles_array[i] = c
+                        break
     @property     
     def open(self):
         return self.candles_array[0][1]
