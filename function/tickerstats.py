@@ -35,8 +35,19 @@ def lambda_handler(event, context):
         timeframe = '1m'
         nowbdt = BacktestDateTime()
         lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -300)
-        last_bdt = BacktestDateTime(timestamp=lookup[-1][0])
-        logger.info("%s %s %s diffsec: %f" %(exchange, market_symbol, lookup[-1], last_bdt.diffsec(nowbdt)))
+        last_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
+        logger.info("%s %s %s diffsec: %f" %(exchange, market_symbol, lookup, last_bdt.diffsec(nowbdt)))
+        #
+        timeframe = '1h'
+        nowbdt = BacktestDateTime()
+        lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -169)
+        last_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
+        logger.info("%s %s %s diffsec: %f" %(exchange, market_symbol, lookup, last_bdt.diffsec(nowbdt)))
+        timeframe = '1d'
+        nowbdt = BacktestDateTime()
+        lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -60)
+        last_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
+        logger.info("%s %s %s diffsec: %f" %(exchange, market_symbol, lookup, last_bdt.diffsec(nowbdt)))
         
     
     #logger.info(olcache)
