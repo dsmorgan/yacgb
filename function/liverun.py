@@ -46,7 +46,7 @@ def lambda_handler(event, context):
     logger.info(response)
 
     for gbotid in psconf.gbotids:
-        #load Gbot
+        #load Gbot, TODO: need to handle if it can't be found
         x = GbotRunner(gbotid=gbotid)
         exchange=x.gbot.exchange
         market_symbol=x.gbot.market_symbol

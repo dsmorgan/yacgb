@@ -51,7 +51,6 @@ class ohlcvLookup:
         nowt = datetime.datetime.now(timezone.utc)
         for ck in list(cache):
             if cache[ck].c_expire and cache[ck].c_timestamp + timedelta(seconds=expire_seconds) < nowt:
-                #print("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
                 logger.info("cache expire: %s expire_seconds: %f" % (ck, expire_seconds))
                 del(cache[ck])
         return
@@ -65,7 +64,6 @@ class ohlcvLookup:
                 if cache[ck].c_timestamp < oldest_ts:
                     oldest_ts = cache[ck].c_timestamp
                     oldest = ck
-            #print("cache evict: %s maxsize: %d" % (oldest, maxsize))
             logger.warning("cache evict: %s maxsize: %d" % (oldest, maxsize))
             del(cache[oldest])
         return
@@ -77,15 +75,13 @@ class ohlcvLookup:
         #get from cache
         mkey = exchange + '_' + market_symbol
         if mkey in self.mcache.keys():
-            #print("get_market cache hit: %s" % mkey)
-            logger.info("get_market cache hit: %s" % mkey)
+            logger.debug("get_market cache hit: %s" % mkey)
             return self.mcache[mkey]
         
         #else get from dynamodb
         #TODO: add rate-limiting
         try:
             mkt = Market.get(exchange, market_symbol)
-            #print ("get_market cache miss: %s" % mkey)
             logger.info("get_market cache miss: %s" % mkey)
             #add something for caching?
             self.mcache[mkey] = cacheItem(mkey, mkt.to_dict())
@@ -107,14 +103,12 @@ class ohlcvLookup:
         #ktimestamp = int(ktime.timestamp()*1000)
         oktkey = okey + '_' + str(ktimestamp)
         if oktkey in self.ocache.keys():
-           #print("get_ohlcv cache hit: %s" % oktkey)
-            logger.info("get_ohlcv cache hit: %s" % oktkey)
+            logger.debug("get_ohlcv cache hit: %s" % oktkey)
             return self.ocache[oktkey]
         
         #else get from dynamodb
         try:
             o = OHLCV.get(okey, ktimestamp)
-            #print("get_ohlcv cache miss: %s" % oktkey)
             logger.info("get_ohlcv cache miss: %s" % oktkey)
             e = True
             # check that:
@@ -128,8 +122,7 @@ class ohlcvLookup:
             now_tf_ago = BacktestDateTime()
             now_tf_ago.addtf(timeframe, -1)
             if len(o.array) == max_array_size(timeframe, key_btdt.t.year, key_btdt.t.month) and now_tf_ago.laterthan(array_last_btdt):
-                #print ("cache set: 1 and 2 are true, no cache expire")
-                logger.info ("cache set: 1 and 2 are true, no cache expire")
+                logger.debug ("cache set: 1 and 2 are true, no cache expire")
                 e = False
                 
             last_btdt = BacktestDateTime(o.last)
@@ -138,8 +131,7 @@ class ohlcvLookup:
             last_btdt_tf = BacktestDateTime(o.last)
             last_btdt_tf.addtf(timeframe, -1)
             if now_twomin_ago.laterthan(last_btdt) and last_btdt_tf.laterthan(array_last_btdt):
-                #print ("cache set: 3 & 4 are true, no cache expire")
-                logger.info ("cache set: 3 & 4 are true, no cache expire")
+                logger.debug ("cache set: 3 & 4 are true, no cache expire")
                 e = False
             
             self.ocache[oktkey] = cacheItem(oktkey, o.to_dict(), expire=e)
@@ -163,11 +155,11 @@ class ohlcvLookup:
         if ans != None:
             for x in ans.array:
                 if x[0] == ctimestamp:
-                    resp = Candle(ctimestamp, x)
+                    resp = Candle(ctimestamp, timeframe, x)
                     #print (resp)
                     return resp
         #We got through the entire array, and didn't find it OR the get_ohlcv failed
-        resp = Candle(ctimestamp)
+        resp = Candle(ctimestamp, timeframe)
         logger.warning("get_candle not found: %s %s %s %s %s" % (exchange, market_symbol, timeframe, stime, resp))
         return (resp)
         
@@ -180,7 +172,7 @@ class ohlcvLookup:
         else:
             end.addtf(timeframe, count-1)
         current = BacktestDateTime(start.dtstf(timeframe))
-        resp = Candles()
+        resp = Candles(timeframe=timeframe)
         err_cnt = 0
         last = 0
         
@@ -207,7 +199,8 @@ class ohlcvLookup:
             
             
 class Candle:
-    def __init__(self, candle_timestamp, candle_array=[0,0,0,0,0,0]):
+    def __init__(self, candle_timestamp, timeframe='1m', candle_array=[0,0,0,0,0,0]):
+        self.timeframe=timeframe
         if candle_array[0]==0:
             self.timestamp = candle_timestamp
             self.valid = False
@@ -223,11 +216,12 @@ class Candle:
     def __str__(self):
         dt = datetime.datetime.fromtimestamp(int(self.timestamp/1000), tz=timezone.utc)
         dt_st = dt.strftime('%Y%m%d %H:%M')
-        return ("<Candle %s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dt_st, self.open, self.high, self.low, self.close, self.volume, self.valid))
+        return ("<Candle %s t-%s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dt_st, self.timeframe, self.open, self.high, self.low, self.close, self.volume, self.valid))
         
         
 class Candles:
-    def __init__(self, candles_array=[]):
+    def __init__(self, timeframe='1m', candles_array=[]):
+        self.timeframe=timeframe
         if len(candles_array)==0:
             self.valid = False
             self.candles_array = [[0,0,0,0,0,0]]
@@ -302,10 +296,28 @@ class Candles:
             a += c[5]
         return (a/len(self.candles_array[:-1]))
         
+    def dejitter_close(self, last=4):
+        # take the last x entries of the candles_array, and remove the extreme highs and low
+        size = last
+        if len(self.candles_array) < size:
+            size = len(self.candles_array)
+        close = self.candles_array[-1][4]
+        h_close = self.candles_array[-size][4]
+        l_close = self.candles_array[-size][4]
+        for x in self.candles_array[-size:]:
+            if x[4] > h_close:
+                h_close = x[4]
+            elif x[4] < l_close:
+                l_close = x[4]
+        for y in self.candles_array[-size:]:
+            if y[4] < h_close and y[4] > l_close:
+                close = y[4]
+        return close
+            
      
     def __str__(self):
         dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
         dts_st = dts.strftime('%Y%m%d %H:%M')
         dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
         dte_st = dte.strftime('%Y%m%d %H:%M')
-        return ("<Candles s-%s e-%s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dts_st, dte_st, self.open, self.high, self.low, self.close, self.volume, self.valid))
+        return ("<Candles s-%s e-%s t-%s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, self.low, self.close, self.volume, self.valid))

@@ -236,15 +236,17 @@ def test_ohlcvLookup_getcandles(setup_ohlcv):
         
     y = x.get_candles(exchange, market_symbol, '1h', '20210629 03:00', 1)
     assert len(y.candles_array) == 1
+    assert y.timeframe == '1h'
     assert datetime.datetime.fromtimestamp(y.candles_array[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210629 03:00'
     
     y = x.get_candles(exchange, market_symbol, '1d', '20210530 03:00', 50)
     assert len(y.candles_array) == 35
+    assert y.timeframe == '1d'
     assert datetime.datetime.fromtimestamp(y.candles_array[0][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210601 00:00'
     assert datetime.datetime.fromtimestamp(y.candles_array[-1][0]/1000, tz=timezone.utc).strftime('%Y%m%d %H:%M') == '20210705 00:00'
     
 def test_Candles():
-    x = Candles()
+    x = Candles(timeframe='1d')
     print (x)
     assert x.open == 0
     assert x.high == 0
@@ -254,9 +256,10 @@ def test_Candles():
     assert x.avg_volume() == 0
     assert x.avg_volume(trim=False) == 0
     assert x.wavg_close == 0
-    x.append([1620950400000,4.2,10,4.0001,5,100.3])
-    x.append([1621036800000,5,7,5,6,1000.1])
-    x.append([1621123200000,6,12.334,6,11.33,500.1])
+    assert x.dejitter_close() == 0
+    x.append([1620950400000,4.2,10    ,4.0001,5    ,100.3])
+    x.append([1621036800000,5  ,7     ,5     ,6    ,1000.1])
+    x.append([1621123200000,6  ,12.334,6     ,11.33,500.1])
     print(x)
     assert x.open == 4.2
     assert x.high == 12.334
@@ -266,12 +269,14 @@ def test_Candles():
     assert x.avg_volume() == 550.2
     assert x.avg_volume(trim=False) == 533.5
     assert x.wavg_close == 7.6027697594501715
+    assert x.dejitter_close() == 6
     x.update([[1621123200000,6,12.55,6,12.55,600.1]])
     print(x)
     assert x.high == 12.55
     assert x.volume == 1700.5
     x.update([[1621036800000,5,7,5,6,1000.1],[1621123200000,6,12.334,6,11.33,500.1]])
     print(x)
+    assert len(x.candles_array) == 3
     assert x.open == 4.2
     assert x.high == 12.334
     assert x.low == 4.0001
@@ -280,8 +285,10 @@ def test_Candles():
     assert x.avg_volume() == 550.2
     assert x.avg_volume(trim=False) == 533.5
     assert x.wavg_close == 7.6027697594501715
+    assert x.dejitter_close() == 6
     x.update([[1621123200000,6,12.55,6,12.55,600.1], [1621209600000,12.50,12.50,3.33,3.33,10000.1]])
     print(x)
+    assert len(x.candles_array) == 4
     assert x.open == 4.2
     assert x.high == 12.55
     assert x.low == 3.33
@@ -290,6 +297,8 @@ def test_Candles():
     assert x.avg_volume() == 566.8333333333334
     assert x.avg_volume(trim=False) == 2925.15
     assert x.wavg_close == 4.045406902210143
+    assert x.timeframe == '1d'
+    assert x.dejitter_close() == 6
     
     
     
