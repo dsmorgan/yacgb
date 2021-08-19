@@ -39,7 +39,7 @@ def lambda_handler(event, context):
     #lookup = OrderBookLookup(config['exchange'], config['market_symbol'])
     #If this returns zero, then might need to advance to see if we can find a valid OHLCV table entry
     while end.laterthan(start):
-        #lookup.getcandle(timeframe=timeframe, stime=start.dtstf(timeframe))
+        #lookup.getcandle(tgit imeframe=timeframe, stime=start.dtstf(timeframe))
         lookup = olcache.get_candle(config['exchange'], config['market_symbol'], timeframe, start.dtstf(timeframe))
         if lookup.open != 0:
             break

@@ -20,4 +20,7 @@ class Indicators:
     def macd(self):
         return self.sdf['macd'].iloc[-1] 
         
+    def macdh(self):
+        return self.sdf['macdh'].iloc[-1] 
+        
         

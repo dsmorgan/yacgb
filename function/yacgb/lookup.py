@@ -179,6 +179,7 @@ class ohlcvLookup:
         while current.ccxt_timestamp_key(timeframe) <= end.ccxt_timestamp_key(timeframe):
             ans = self.get_ohlcv(exchange, market_symbol, timeframe, current.ccxt_timestamp_key(timeframe))
             if ans != None:
+                resp.set_last(ans.last)
                 for x in ans.array:
                     if x[0] >= start.ccxt_timestamp(timeframe) and x[0] <= end.ccxt_timestamp(timeframe):
                         last = x[0]
@@ -220,8 +221,9 @@ class Candle:
         
         
 class Candles:
-    def __init__(self, timeframe='1m', candles_array=[]):
+    def __init__(self, timeframe='1m', candles_array=[], last=None):
         self.timeframe=timeframe
+        self.last=None
         if len(candles_array)==0:
             self.valid = False
             self.candles_array = [[0,0,0,0,0,0]]
@@ -229,6 +231,9 @@ class Candles:
             self.valid = True
             self.candles_array = candles_array
 
+    def set_last(self, last):
+        self.last=last
+    
     def append(self, candle_array):
         if self.valid == False:
             self.candles_array = []
@@ -297,7 +302,9 @@ class Candles:
         return (a/len(self.candles_array[:-1]))
         
     def dejitter_close(self, last=4):
-        # take the last x entries of the candles_array, and remove the extreme highs and low
+        # take the last x entries of the candles_array, and remove the extreme high and low close values. 
+        # If duplicate high and/or low values, then the most recent (last) close value is used.
+        # The goal is to reduce chances of single candle drops or jumps from triggering stop_loss, take_profit, or profit_protect_percent
         size = last
         if len(self.candles_array) < size:
             size = len(self.candles_array)
