@@ -1,4 +1,4 @@
-# Yet Another Cryptocurrency Grid Bot (yacgb) - Still a work in progress
+# Yet Another Cryptocurrency Grid Bot (yacgb)
 
 ## Overview
 An experiment in bot-based Crypto trading, with the goal of having it run in the cloud and having Jeff Bezos pay for running it! [^1]. The current implementation uses a standard grid trading strategy, with the ability to set several safety settings in cases that the current price of a currency goes outside of the grid. 
@@ -7,7 +7,7 @@ Built using:
 - ccxt library, enabling access to just about every crypto exchange out there
 - pynamodb library, enabling persistence using AWS DynamoDB
 
-[^1]: Leveraging AWS Free-Tier, which notoriously lacks any guardrails. No gurantees it will actually cost you nothing and requires fairly regular monitoring and experience in AWS cost management practices, YMMV.
+[^1]: Leveraging AWS Free-Tier, which [notoriously lacks any guardrails](https://www.lastweekinaws.com/blog/is-the-aws-free-tier-really-free/). No gurantees it will actually cost you nothing and requires fairly regular monitoring and experience in AWS cost management practices, YMMV.
 
 ---
 

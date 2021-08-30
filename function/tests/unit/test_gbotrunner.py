@@ -53,7 +53,7 @@ def setup_gbot2(request):
             'min_ticker': 0.4, 
             'reserve': 0, 
             'live_balance': False, 
-            'start_base': 0, 
+            'start_base': 9000, 
             'start_quote': 3001, 
             'makerfee': 0.001, 
             'takerfee': 0.001, 
@@ -119,8 +119,8 @@ def test_grid1(setup_gbot1):
     total_quantity_sell=0
     print("Grid...", setup_gbot1.gbot.gbotid)
     for g in setup_gbot1.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
                 
         if g.mode == 'buy':
             total_quantity_buy += g.ticker * g.buy_base_quantity
@@ -160,8 +160,8 @@ def test_grid2(setup_gbot2):
 def test_grid3(setup_gbot3):
     print("Grid...", setup_gbot3.gbot.gbotid)
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
 
     assert setup_gbot3.grids() == 6
     assert setup_gbot3.gbot.state == 'active'
@@ -183,15 +183,17 @@ def test_grid3_backtest(setup_gbot3):
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
-                
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
+
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 3
     assert setup_gbot3.gbot.at_low_ticker == 180
     assert setup_gbot3.gbot.at_high_ticker == 220
     assert setup_gbot3.gbot.last_ticker == 219.25
-    assert round(setup_gbot3.gbot.profit, 2) == 39.01
+    #assert round(setup_gbot3.gbot.profit, 2) == 39.01
+    ##assert round(setup_gbot3.gbot.profit, 2) == 25.78
+    assert round(setup_gbot3.gbot.profit, 2) == 32.59
     assert round(setup_gbot3.gbot.step_profit, 2) == 39.36
     assert round(setup_gbot3.gbot.total_fees, 2) == 0.64
     
@@ -209,8 +211,8 @@ def test_grid3_backtest_profit_protect(setup_gbot3):
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
                 
     assert setup_gbot3.gbot.state == 'profit_protect'
     assert setup_gbot3.gbot.transactions == 4
@@ -231,9 +233,9 @@ def test_grid3_backtest_take_profit(setup_gbot3):
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
-                
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
+
     assert setup_gbot3.gbot.state == 'take_profit'
     assert setup_gbot3.gbot.transactions == 4
   
@@ -251,9 +253,9 @@ def test_grid3_backtest_stop_loss(setup_gbot3):
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
-                
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
+
     assert setup_gbot3.gbot.state == 'stop_loss'
     assert setup_gbot3.gbot.transactions == 3
     
@@ -262,8 +264,8 @@ def test_grid3_backtest_stop_loss(setup_gbot3):
 def test_grid3_closed_adjust(setup_gbot3):
     print("Grid...", setup_gbot3.gbot.gbotid)
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
 
     setup_gbot3.closed_adjust([])
     setup_gbot3.closed_adjust([2, 4])
@@ -274,9 +276,9 @@ def test_grid3_closed_adjust(setup_gbot3):
     
     print("Grid...", setup_gbot3.gbot.gbotid)
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
-    
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
+   
     
     setup_gbot3.closed_adjust([1, 2])           
     assert setup_gbot3.gbot.state == 'active'
@@ -291,8 +293,8 @@ def test_grid3_closed_adjust(setup_gbot3):
     
     print("Grid...", setup_gbot3.gbot.gbotid)
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
+         print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
     
     setup_gbot3.closed_adjust([2]) 
     setup_gbot3.closed_adjust([1]) 
@@ -303,9 +305,9 @@ def test_grid3_closed_adjust(setup_gbot3):
     
     print("Grid...", setup_gbot3.gbot.gbotid)
     for g in setup_gbot3.gbot.grid:
-        print (g.step, g.ticker, 'q_step:', g.buy_quote_quantity, g.mode, 'b_b:', g.buy_base_quantity, 's_q:', g.sell_quote_quantity, 
-                's_b:', g.sell_base_quantity, 't:', g.take, 's_t:', g.step_take, 'counts (b/s)', g.buy_count, g.sell_count, g.ex_orderid)
-                
+        print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
+                g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
+            
     setup_gbot3.closed_adjust([5 ,3 ,1 ,4]) 
 
     assert setup_gbot3.gbot.state == 'active'

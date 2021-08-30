@@ -5,6 +5,7 @@ import uuid
 
 from model.gbot import Gbot, gbot_init
 from model.gridline import GridLine
+from yacgb.orderscapture import OrdersCapture
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class GbotRunner:
         #RESET
         #Gbot.delete_table()
         self.gbot = None
+
         gbot_init()
         
         if gbotid != None:
@@ -23,6 +25,7 @@ class GbotRunner:
                 logger.info("Lookup existing gbot, gbotid: " + gbotid + " state: " + self.gbot.state)
             except Gbot.DoesNotExist:
                 logger.error('Unable to find gbot, gbotid: ' + gbotid)
+                #We probably should do something better then exit, so that we can continue exiting other bots
                 exit()
         else:
             # create a new bot
@@ -34,11 +37,9 @@ class GbotRunner:
             # initalize new bot
             self.setup()
             # not clear if I should save now, but probably a good idea
-            #self.gbot.save()
             self.save()
     
     def save(self):
-        #self.gbot.grid = jsonpickle.encode(self.grid_array)
         self.gbot.save()
         
     def test_slortp(self, last_tick, high_tick, low_tick, ts=''):
@@ -97,6 +98,8 @@ class GbotRunner:
             logger.info(ts + " skipped ticker: " + str(tick))
     
     
+    
+    #TODO: replace this with ordersmatch() for live and stepsmatch() for backtesting
     def check_id(self, exchange, orderid):
         for g in self.gbot.grid:
             #logger.info("Grid: \n%s" %str(g))
@@ -132,10 +135,20 @@ class GbotRunner:
         return (none_index + up - down)
     
     def closed_adjust(self, closed=[], timestamp=''):
+        #use orderscap to parse an
+        orderscap = OrdersCapture(self.gbot.gbotid, self.gbot.exchange, self.gbot.config.makerfee, self.gbot.config.takerfee)
+        
         cindex = self._current_none()
         nindex = self._new_none(cindex, closed)
+        #grab this value now, as it will change as we adjust the grid
+        #bc = self.base_cost()
+        total_b = self.total_sell_b()
+        #print ("cost_basis", self.gbot.cost_basis)
+        #print("total_b", total_b)
+        #print ("bc", bc)
         
         for c in closed:
+            #TODO: change closed to be either an array of a class, array, or dict containing: step, price, base_amt, quote_amt, fee
             for g in self.gbot.grid:
                 if c == g.step:
                     if g.mode == 'buy':
@@ -144,6 +157,7 @@ class GbotRunner:
                         self.gbot.total_fees += fee #TODO: what about using actual fee?
                         self.gbot.profit -= fee
                         self.gbot.step_profit -= fee
+                        self.gbot.cost_basis += fee + (g.ticker*g.buy_base_quantity)
                         # take purchased amount (buy_base_quantity) and use to calculate sale and profit(s)
                         temp_ticker = g.ticker
                         temp_quantity = g.buy_base_quantity
@@ -155,8 +169,16 @@ class GbotRunner:
                         logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
                         fee = g.sell_quote_quantity*self.gbot.config.makerfee
                         self.gbot.total_fees += fee #TODO: what about using actual fee?
-                        self.gbot.profit += g.take - fee
-                        self.gbot.step_profit += g.step_take - fee
+                        
+                        #take = (g.ticker - bc) * g.sell_base_quantity
+                        take = g.sell_quote_quantity - (g.sell_base_quantity/total_b * self.gbot.cost_basis)
+                        step_take = g.sell_quote_quantity - self.gbot.grid[g.step-1].buy_quote_quantity
+                        
+                        self.gbot.profit += take - fee
+                        self.gbot.step_profit += step_take - fee
+                        #self.gbot.cost_basis += fee - (self.gbot.grid[g.step-1].ticker*g.sell_base_quantity)
+                        self.gbot.cost_basis += fee - (g.sell_base_quantity/total_b * self.gbot.cost_basis)
+                        #
                         self.gbot.transactions += 1
                         g.sell_count +=1
                         g.ex_orderid=None
@@ -173,60 +195,13 @@ class GbotRunner:
                     #sell
                     g.mode = "sell"
                     # reset the take to be the same as step_take going forward
-                    g.take = g.step_take
+                    #g.take = g.step_take
                     logger.info("Limit Sell %.8f @ %.5f Total: %.2f" % (g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
             elif g.step == nindex:
                 if g.mode != "NONE":
                     logger.error("step %d, ticker  %.5f, mode should be NONE, but was %s, resetting" % (g.step, g.ticker, g.mode))
                     g.mode = "NONE"
         
-    
-    # def reset(self, grid_ticker=-1, timestamp=''):
-    #     #TODO: turn this into collecting a list, and then
-    #     # used to take last Buy and setup the next Limit Sell
-    #     temp_ticker = 0
-    #     temp_quantity = 0
-    #     if grid_ticker > 0:
-    #         # Find the current grid to be reset, calculate buy or sell based on what it was
-    #         for g in self.gbot.grid:
-    #             if g.ticker == grid_ticker:
-    #                 if g.mode == 'buy':
-    #                     logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
-    #                     fee = g.ticker*g.buy_base_quantity*self.gbot.config.makerfee
-    #                     self.gbot.total_fees += fee #TODO: what about using actual fee?
-    #                     self.gbot.profit -= fee
-    #                     self.gbot.step_profit -= fee
-    #                     # take purchased amount (buy_base_quantity) and use to calculate sale and profit(s)
-    #                     temp_ticker = g.ticker
-    #                     temp_quantity = g.buy_base_quantity
-    #                     self.gbot.transactions += 1
-    #                     g.buy_count +=1
-    #                     g.ex_orderid=None
-    #                     g.mode = "NONE"
-    #                 if g.mode == 'sell':
-    #                     logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
-    #                     fee = g.sell_quote_quantity*self.gbot.config.makerfee
-    #                     self.gbot.total_fees += fee #TODO: what about using actual fee?
-    #                     self.gbot.profit += g.take - fee
-    #                     self.gbot.step_profit += g.step_take - fee
-    #                     self.gbot.transactions += 1
-    #                     g.sell_count +=1
-    #                     g.ex_orderid=None
-    #                     g.mode = "NONE"
-    #                 break
-    #     for g in self.gbot.grid:
-    #         # Reset all NONE mode grids to buy or sell, depending on position from current grid being reset
-    #         if g.mode ==  "NONE" and g.ticker != grid_ticker:
-    #             if g.ticker < grid_ticker:
-    #                 #buy
-    #                 g.mode = "buy"
-    #                 logger.info("Limit Buy %.8f @ %.5f Total: %.2f" % (g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
-    #             else:
-    #                 #sell
-    #                 g.mode = "sell"
-    #                 # reset the take to be the same as step_take going forward
-    #                 g.take = g.step_take
-    #                 logger.info("Limit Sell %.8f @ %.5f Total: %.2f" % (g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
     
     
     def grids(self):
@@ -247,7 +222,6 @@ class GbotRunner:
             if abs(self.gbot.config.start_ticker - now_ticker) < closest:
                 closest = abs(self.gbot.config.start_ticker - now_ticker)
                 closest_grid = self.grids()-1 #step is 1 less then the length of the grid
-            #print (x, now_ticker)
             now_ticker = now_ticker*(1+self.gbot.config.grid_spacing)
         return (closest_grid)
     
@@ -264,7 +238,7 @@ class GbotRunner:
             g.buy_base_quantity = g.buy_quote_quantity/g.ticker
             g.sell_base_quantity = g.buy_base_quantity*(1+gs)
             g.sell_quote_quantity = g.sell_base_quantity*g.ticker
-            g.step_take = (g.ticker-last_grid_tick)*g.sell_base_quantity
+            #g.step_take = (g.ticker-last_grid_tick)*g.sell_base_quantity
             #Traverse the grid and fill in details specific to mode
             if (none_grid == g.step):
                 ###g.allocate(buy_quote_quantity, gs, "NONE", 0, (g.ticker-last_step))
@@ -272,8 +246,8 @@ class GbotRunner:
             elif g.ticker > self.gbot.config.start_ticker:
                 ###g.allocate(buy_quote_quantity, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
                 g.mode = "sell"
-                g.take = (g.ticker-self.gbot.config.start_ticker)*g.sell_base_quantity
-                
+                #g.take = (g.ticker-self.gbot.config.start_ticker)*g.sell_base_quantity
+                self.gbot.cost_basis += self.gbot.config.start_ticker*g.sell_base_quantity
                 total_sell_q += g.sell_quote_quantity
                 totalq += g.buy_quote_quantity
                 totalb += g.buy_base_quantity
@@ -285,7 +259,7 @@ class GbotRunner:
                 totalb += g.buy_base_quantity
             last_grid_tick = g.ticker
         logger.info("Actual, based on current price in grid: total_buy_q %.2f total_sell_q %.8f" % (total_buy_q, total_sell_q)) 
-        logger.info("Theoretical: totalq %.2f totalb %.8f @ %.5f = %.2f" % (totalq, totalb, self.gbot.config.start_ticker, self.gbot.config.start_ticker*totalb)) 
+        #logger.info("Theoretical: totalq %.2f totalb %.8f @ %.5f = %.2f" % (totalq, totalb, self.gbot.config.start_ticker, self.gbot.config.start_ticker*totalb)) 
         logger.info("start_quote %.2f start_base: %.8f @ %.5f = %.2f" % (self.gbot.config.start_quote, self.gbot.config.start_base, 
                                                 self.gbot.last_ticker, self.gbot.config.start_quote + (self.gbot.config.start_base*self.gbot.last_ticker)))
         
@@ -316,6 +290,11 @@ class GbotRunner:
             if g.mode == "sell":
                 b += g.sell_base_quantity
         return (round(b,4))
+        
+    def base_cost(self):
+        if self.total_sell_b() <= 0:
+            return (0)
+        return (self.gbot.cost_basis/self.total_sell_b())
     
     def _check_base_quote(self):
         self.gbot.need_quote = 0
@@ -342,10 +321,12 @@ class GbotRunner:
             return ("ok")
         elif (self.gbot.need_quote == 0) and (extra_q >= self.gbot.need_base*self.gbot.last_ticker):
             #extra Q, need to buy B
-            return ("buy")
+            self.gbot.state='buy_base'
+            return ("buy_base")
         elif (self.gbot.need_base == 0) and ((extra_b*self.gbot.last_ticker) >= self.gbot.need_quote):
             #extra B, need to sell B for more Q
-            return ("sell")
+            self.gbot.state='sell_base'
+            return ("sell_base")
         # Not enough base and/or quote
         self.gbot.state='error'
         return("error")
@@ -370,7 +351,7 @@ class GbotRunner:
         if action == 'error':
             logger.error ("exit, unhandled condition. Not enough quote and/or base")
             #exit()
-
+            
         ##TODO
         #self.start_timestamp = NumberAttribute(null=True)
         #self.start = UnicodeAttribute(null=True)
@@ -383,8 +364,8 @@ class GbotRunner:
         total_q = self.gbot.balance_quote
     
         for g in self.gbot.grid:
-            logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f [take %.2f/%.2f] %.2f %s" % (g.step, g.mode, g.ticker, g.buy_quote_quantity, 
-                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_base_quantity, g.take, g.step_take, g.sell_quote_quantity, g.ex_orderid))
+            logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f %.2f %s" % (g.step, g.mode, g.ticker, g.buy_quote_quantity, 
+                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_base_quantity, g.sell_quote_quantity, g.ex_orderid))
             if g.mode == 'buy':
                 # add up the quote
                 total_q += g.buy_quote_quantity
@@ -394,5 +375,46 @@ class GbotRunner:
         
         logger.info("Total Quote: %.5f Total Base: %.8f @ %.5f (%.2f) = %.2f" % (total_q, total_b, self.gbot.last_ticker, (total_b*self.gbot.last_ticker), 
                                                                             total_q + (total_b*self.gbot.last_ticker)))
+        logger.info("Base Held Cost Basis: %.2f (%.2f)" % (self.gbot.cost_basis, self.base_cost()))                                                                    
         logger.info("Transactions %d (fees: %.2f) Profit %.2f/%.2f" % (self.gbot.transactions, self.gbot.total_fees, self.gbot.profit, self.gbot.step_profit))
         logger.info("state: %s" % self.gbot.state)
+        
+    def dynamic_grid_adjust(self, new_ticker):
+        #check no open orders 1st?
+        sell_amt = self.total_sell_b()
+        
+        # reset none line grid ticker
+        none = self._current_none()
+        self.gbot.grid[none].ticker = new_ticker
+        
+        # reset grid tickers below none line
+        t_ticker = new_ticker
+        for i in range(none-1, -1, -1):
+            t_ticker = t_ticker / (1+self.gbot.config.grid_spacing)
+            self.gbot.grid[i].ticker = t_ticker
+        
+        # reset grids tickers above none line
+        t_ticker = new_ticker
+        for i in range(none+1, self.grids()):
+            t_ticker = t_ticker * (1+self.gbot.config.grid_spacing)
+            self.gbot.grid[i].ticker = t_ticker
+        
+        #recalculate each grid    
+        for g in self.gbot.grid:
+            #should NOT change
+            #g.buy_quote_quantity = each_grid_buy 
+            #g.sell_quote_quantity = g.sell_base_quantity*g.ticker
+            #g.step_take = (g.ticker-last_grid_tick)*g.sell_base_quantity
+            g.buy_base_quantity = g.buy_quote_quantity/g.ticker
+            g.sell_base_quantity = g.buy_base_quantity*(1+self.gbot.config.grid_spacing)
+            if g.mode == 'sell':
+                if sell_amt >= g.sell_base_quantity:
+                    sell_amt -= g.sell_base_quantity
+                else:
+                    g.sell_base_quantity = sell_amt
+                    sell_amt = 0
+                g.sell_quote_quantity = g.sell_base_quantity*g.ticker    
+            #if sell_amt != 0:
+            #if its zero, won't hurt to add it to the last grid
+            self.gbot.grid[-1].sell_base_quantity += sell_amt
+            self.gbot.grid[-1].sell_quote_quantity = g.sell_base_quantity*g.ticker

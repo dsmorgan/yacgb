@@ -79,7 +79,9 @@ def lambda_handler(event, context):
                 else:
                     #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
                     closed_list.append(matched_step)
-                    ###This should be seperated to a class
+                    ###This should be seperated to a class, the class should handle both writing to the table, and replace the
+                    ### matched_step so that additional values that we require are passed to gbot (step, price, base_amt, quote_amt, fee)
+                    
                     #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
                     # Problem is, this isn't consistent between exchanges
                     ####TODO bug related to fee.cost and fee.currency not always being defined. Where do we get this? Might have to set to zeros for now
@@ -94,8 +96,7 @@ def lambda_handler(event, context):
                     ord.save()
     
         logger.info("closed_list %s reset_list %s" % (str(closed_list), str(reset_list)))
-        # sequence list, in case there were multiple orders that matched
-        ## assume that they come in the right order for now TODO, these are NOT ordered
+        # sequence list, in case there were multiple orders that matched. Order no longer matters
         
         # apply x.closed_adjust() against each grid that closed (closed_list), which was collected as a match of a closed order, 
         # ensure that resets the ex_orderid too. This reconfigures the grid, moving the current "NONE" grid either up or down and then we can reset the orders

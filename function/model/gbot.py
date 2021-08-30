@@ -30,6 +30,7 @@ class Gbot(Model):
     balance_base = NumberAttribute(default=0)
     need_quote = NumberAttribute(default=0)
     need_base = NumberAttribute(default=0)
+    cost_basis = NumberAttribute(default=0)
     ###
     transactions = NumberAttribute(default=0)
     profit = NumberAttribute(default=0)
