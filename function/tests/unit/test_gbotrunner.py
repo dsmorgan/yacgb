@@ -4,6 +4,7 @@ import pytest
 import os
 
 from yacgb.gbotrunner import GbotRunner
+from model.orders import Orders
 
 
 local_dynamo_avail = pytest.mark.skipif(os.environ.get('DYNAMODB_HOST') == None, 
@@ -40,6 +41,11 @@ def setup_gbot1(request):
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
     yield g
+    print ("Delete any Orders records:", g.gbot.gbotid)
+    for o in Orders.scan(Orders.gbotid == g.gbot.gbotid):
+        print(o.ex_orderid)
+        o.delete()
+    
     print ("Delete gbot:", g.gbot.gbotid)
     g.gbot.delete()
 
@@ -73,6 +79,9 @@ def setup_gbot2(request):
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
     yield g
+    print ("Delete any Orders records:", g.gbot.gbotid)
+    for o in Orders.scan(Orders.gbotid == g.gbot.gbotid):
+        print(o.ex_orderid)
     print ("Delete gbot:", g.gbot.gbotid)
     g.gbot.delete()
 
@@ -107,6 +116,9 @@ def setup_gbot3(request):
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
     yield g
+    print ("Delete any Orders records:", g.gbot.gbotid)
+    for o in Orders.scan(Orders.gbotid == g.gbot.gbotid):
+        print(o.ex_orderid)
     print ("Delete gbot:", g.gbot.gbotid)
     g.gbot.delete()
 
@@ -267,8 +279,8 @@ def test_grid3_closed_adjust(setup_gbot3):
         print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
                 g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
 
-    setup_gbot3.closed_adjust([])
-    setup_gbot3.closed_adjust([2, 4])
+    setup_gbot3.closed_adjust({})
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({2:100, 4:200}))
     setup_gbot3.save()
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 2
@@ -280,13 +292,13 @@ def test_grid3_closed_adjust(setup_gbot3):
                 g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
    
     
-    setup_gbot3.closed_adjust([1, 2])           
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({1:100, 2:200}))
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 4
     assert setup_gbot3._current_none() == 1
     
     
-    setup_gbot3.closed_adjust([3, 2, 4, 0])           
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({3:400, 2:300, 4:500, 0:100}))           
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 8
     assert setup_gbot3._current_none() == 3
@@ -296,9 +308,10 @@ def test_grid3_closed_adjust(setup_gbot3):
          print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
                 g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
     
-    setup_gbot3.closed_adjust([2]) 
-    setup_gbot3.closed_adjust([1]) 
-    setup_gbot3.closed_adjust([2])
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({2:300})) 
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({1:200})) 
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({2:300})) 
+
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 11
     assert setup_gbot3._current_none() == 2
@@ -308,7 +321,7 @@ def test_grid3_closed_adjust(setup_gbot3):
         print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
                 g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
             
-    setup_gbot3.closed_adjust([5 ,3 ,1 ,4]) 
+    setup_gbot3.closed_adjust(setup_gbot3.stepsmatch({5:600, 3:400, 1:200, 4:500})) 
 
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 15

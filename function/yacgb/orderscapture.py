@@ -52,6 +52,20 @@ class OrdersCapture:
         self.reset_list=[]
         orders_init()
             
+    @property
+    def closed_list_steps(self):
+        steps=[]
+        for c in self.closed_list:
+            steps.append(c.step)
+        return (steps)
+
+    @property
+    def reset_list_steps(self):
+        steps=[]
+        for r in self.reset_list:
+            steps.append(r.step)
+        return (steps)
+    
     def delete_all(self):
         if self.save:
             for dorder in self.closed_list:
@@ -59,7 +73,7 @@ class OrdersCapture:
                     dd = Orders.get(dorder.ex_orderid)
                     dd.delete()
                 except Orders.DoesNotExist:
-                    print ("Error, %s does not exist" % dorder.ex_orderid)
+                    print ("Orders Delete Error, %s does not exist" % dorder.ex_orderid)
     
     def add(self, matched_step, corder):
         o = OrderParse(step=matched_step, gbotid=self.gbotid, exchange=self.exchange, makerfee=self.makerfee, takerfee=self.takerfee, 
@@ -70,7 +84,6 @@ class OrdersCapture:
             self.reset_list.append(o)
             logger.warning("Canceled order (%d), resetting: %s %s" % (o.step, o.market_symbol, o.ex_orderid))
             #setting this grid to None will trigger it to be reset
-            ##TODO x.gbot.grid[matched_step].ex_orderid = None
             #don't do anything else with this step, next order
         else:
             #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
@@ -81,6 +94,7 @@ class OrdersCapture:
             #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
             # Problem is, this isn't consistent between exchanges
             if self.save:
+                logger.info("Creating Order entry: %s %s %s %.5f @ %.3f %s" %(o.ex_orderid, o.market_symbol, o.side, o.amount, o.price, o.timestamp_st))
                 ord = Orders(o.ex_orderid, 
                             exchange=o.exchange, accountid=o.accountid, gbotid=o.gbotid, market_symbol=o.market_symbol, 
                             timestamp=o.timestamp, timestamp_st=o.timestamp_st, side=o.side, type=o.type, status=o.status, 

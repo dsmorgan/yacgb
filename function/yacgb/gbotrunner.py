@@ -76,28 +76,63 @@ class GbotRunner:
             buy_grid = -1
             #grid_below = -1
             #grid_above = -1
-            closed_array = []
+            closed_dict = {}
             for g in self.gbot.grid:
                 if g.mode == 'sell' and g.ticker < lowest_sell:
                     lowest_sell = g.ticker
                     sell_grid = g.step
                 if g.mode == 'sell' and g.ticker <= tick:
-                    closed_array.append(g.step)
+                    # In some cases in the future, this might need to be tick instead of g.ticker
+                    closed_dict[g.step] = g.ticker
                 if g.mode == 'buy' and g.ticker > highest_buy:
                     highest_buy = g.ticker
                     buy_grid = g.step
                 if g.mode == 'buy' and g.ticker >= tick:
-                    closed_array.insert(0,g.step)
-            logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_array)))  
+                    # In some cases in th future, this might need to be tick instead of g.ticker
+                    closed_dict[g.step] = g.ticker
+            logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_dict)))  
             
             #for gg in closed_array:
             #    self.reset(self.gbot.grid[gg].ticker, ts)
-            self.closed_adjust(closed_array, ts)
+            self.closed_adjust(self.stepsmatch(closed_dict), ts)
         
         else:
             logger.info(ts + " skipped ticker: " + str(tick))
     
+    def stepsmatch(self, steps):
+        #generate a dictionary that emulates what a closed order looks like (minimally populated)
+        odict={}
+        for step, price in steps.items():
+            order={}
+            order['side'] = self.gbot.grid[step].mode
+            order['type'] = self.gbot.grid[step].type
+            # we attach the price that is passed to us here, instead of what ticker is
+            order['price'] = price
+            order['status'] = 'closed'
+            order['symbol'] = self.gbot.config.market_symbol
+            #TODO
+            #order['timestamp'] = ...
+            if self.gbot.grid[step].mode == 'buy':
+                order['amount'] = self.gbot.grid[step].buy_base_quantity
+                order['cost'] = self.gbot.grid[step].buy_quote_quantity
+            if self.gbot.grid[step].mode == 'sell':
+                order['amount'] = self.gbot.grid[step].sell_base_quantity
+                order['cost'] = self.gbot.grid[step].sell_quote_quantity
+            odict[step] = order
+            
+        return (odict)
     
+    def ordersmatch(self, orders_array):
+        #generate a dictionary that represents all orders that match, with a key of the step
+        odict={}
+        for o in orders_array:
+            logger.debug("closed order: %s, timestamp: %d" % (corder['id'], corder['timestamp']))
+            exord = self.gbot.config.exchange + '_' + o['id']
+            for g in self.gbot.grid:
+                if g.ex_orderid == exord:
+                    logger.info(">%d Matched %s" %(g.step, g.ex_orderid))
+                    odict[g.step] = o
+        return (odict)
     
     #TODO: replace this with ordersmatch() for live and stepsmatch() for backtesting
     def check_id(self, exchange, orderid):
@@ -134,50 +169,61 @@ class GbotRunner:
                     up += 1
         return (none_index + up - down)
     
-    def closed_adjust(self, closed=[], timestamp=''):
-        #use orderscap to parse an
+    def closed_adjust(self, closed={}, timestamp=''):
+        #use orderscap to parse and seperate reset from closed lists
         orderscap = OrdersCapture(self.gbot.gbotid, self.gbot.exchange, self.gbot.config.makerfee, self.gbot.config.takerfee)
         
+        for step,order in closed.items():
+            orderscap.add(step, order)
+        
+        logger.info("closed_list %s reset_list %s" % (str(orderscap.closed_list_steps), str(orderscap.reset_list_steps)))
+        
         cindex = self._current_none()
-        nindex = self._new_none(cindex, closed)
+        nindex = self._new_none(cindex, orderscap.closed_list_steps)
         #grab this value now, as it will change as we adjust the grid
         #bc = self.base_cost()
         total_b = self.total_sell_b()
         #print ("cost_basis", self.gbot.cost_basis)
         #print("total_b", total_b)
         #print ("bc", bc)
-        
-        for c in closed:
-            #TODO: change closed to be either an array of a class, array, or dict containing: step, price, base_amt, quote_amt, fee
+ 
+        for r in orderscap.reset_list:
+            logger.info("Reset %d (%s)" %(r.step, x.gbot.grid[r.step].ex_orderid))
+            x.gbot.grid[r.step].ex_orderid = None
+             
+        for c in orderscap.closed_list: 
             for g in self.gbot.grid:
-                if c == g.step:
+                if c.step == g.step:
                     if g.mode == 'buy':
-                        logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
-                        fee = g.ticker*g.buy_base_quantity*self.gbot.config.makerfee
-                        self.gbot.total_fees += fee #TODO: what about using actual fee?
-                        self.gbot.profit -= fee
-                        self.gbot.step_profit -= fee
-                        self.gbot.cost_basis += fee + (g.ticker*g.buy_base_quantity)
+                        #logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
+                        logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, c.amount, c.price, c.cost))
+                        #fee = g.ticker*g.buy_base_quantity*self.gbot.config.makerfee
+                        self.gbot.total_fees += c.fee_cost
+                        self.gbot.profit -= c.fee_cost
+                        self.gbot.step_profit -= c.fee_cost
+                        #self.gbot.cost_basis += c.fee_cost + (g.ticker*g.buy_base_quantity)
+                        self.gbot.cost_basis += c.fee_cost + c.cost
                         # take purchased amount (buy_base_quantity) and use to calculate sale and profit(s)
-                        temp_ticker = g.ticker
-                        temp_quantity = g.buy_base_quantity
                         self.gbot.transactions += 1
                         g.buy_count +=1
                         g.ex_orderid=None
                         g.mode = "NONE"
                     if g.mode == 'sell':
-                        logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
-                        fee = g.sell_quote_quantity*self.gbot.config.makerfee
-                        self.gbot.total_fees += fee #TODO: what about using actual fee?
+                        #logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
+                        logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, c.amount, c.price, c.cost))
+                        #fee = g.sell_quote_quantity*self.gbot.config.makerfee
+                        self.gbot.total_fees += c.fee_cost
                         
-                        #take = (g.ticker - bc) * g.sell_base_quantity
-                        take = g.sell_quote_quantity - (g.sell_base_quantity/total_b * self.gbot.cost_basis)
-                        step_take = g.sell_quote_quantity - self.gbot.grid[g.step-1].buy_quote_quantity
+                        #take = g.sell_quote_quantity - (g.sell_base_quantity/total_b * self.gbot.cost_basis)
+                        #step_take = g.sell_quote_quantity - self.gbot.grid[g.step-1].buy_quote_quantity
+                        take = c.cost - (c.amount/total_b * self.gbot.cost_basis)
+                        step_take = c.cost - self.gbot.grid[g.step-1].buy_quote_quantity
                         
-                        self.gbot.profit += take - fee
-                        self.gbot.step_profit += step_take - fee
-                        #self.gbot.cost_basis += fee - (self.gbot.grid[g.step-1].ticker*g.sell_base_quantity)
-                        self.gbot.cost_basis += fee - (g.sell_base_quantity/total_b * self.gbot.cost_basis)
+                        #print ("c.cost %f c.amount %f total_b %f cost_basis %f take %f step_take %f" %(c.cost, c.amount, total_b, self.gbot.cost_basis, take, step_take))
+                        
+                        self.gbot.profit += take - c.fee_cost
+                        self.gbot.step_profit += step_take - c.fee_cost
+                        self.gbot.cost_basis += c.fee_cost - (c.amount/total_b * self.gbot.cost_basis)
                         #
                         self.gbot.transactions += 1
                         g.sell_count +=1
@@ -202,8 +248,7 @@ class GbotRunner:
                     logger.error("step %d, ticker  %.5f, mode should be NONE, but was %s, resetting" % (g.step, g.ticker, g.mode))
                     g.mode = "NONE"
         
-    
-    
+        
     def grids(self):
         return len(self.gbot.grid)
     
@@ -225,7 +270,7 @@ class GbotRunner:
             now_ticker = now_ticker*(1+self.gbot.config.grid_spacing)
         return (closest_grid)
     
-    def _fillin_grids(self, each_grid_buy, none_grid):
+    def _fillin_grids(self, each_grid_buy, none_grid, order_type='limit'):
         #Determine total step and quote
         totalq = 0
         totalb = 0
@@ -238,6 +283,7 @@ class GbotRunner:
             g.buy_base_quantity = g.buy_quote_quantity/g.ticker
             g.sell_base_quantity = g.buy_base_quantity*(1+gs)
             g.sell_quote_quantity = g.sell_base_quantity*g.ticker
+            g.type = order_type
             #g.step_take = (g.ticker-last_grid_tick)*g.sell_base_quantity
             #Traverse the grid and fill in details specific to mode
             if (none_grid == g.step):

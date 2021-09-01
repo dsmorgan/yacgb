@@ -8,6 +8,7 @@ class GridLine(MapAttribute):
     step = NumberAttribute()
     ticker = NumberAttribute()
     mode = UnicodeAttribute(null=True)
+    type = UnicodeAttribute(null=True)
     buy_quote_quantity = NumberAttribute(default=0)
     buy_base_quantity = NumberAttribute(default=0)
     sell_quote_quantity = NumberAttribute(default=0)

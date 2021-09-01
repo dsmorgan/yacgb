@@ -4,6 +4,7 @@ import pytest
 import os
 
 from yacgb.gbotrunner import GbotRunner
+from model.orders import Orders
 
 
 local_dynamo_avail = pytest.mark.skipif(os.environ.get('DYNAMODB_HOST') == None, 
@@ -40,6 +41,9 @@ def setup_gbot4(request):
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
     yield g
+    print ("Delete any Orders records:", g.gbot.gbotid)
+    for o in Orders.scan(Orders.gbotid == g.gbot.gbotid):
+        print(o.ex_orderid)
     print ("Delete gbot:", g.gbot.gbotid)
     g.gbot.delete()
 
@@ -158,6 +162,9 @@ def setup_gbot5(request):
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
     yield g
+    print ("Delete any Orders records:", g.gbot.gbotid)
+    for o in Orders.scan(Orders.gbotid == g.gbot.gbotid):
+        print(o.ex_orderid)
     print ("Delete gbot:", g.gbot.gbotid)
     g.gbot.delete()
     
