@@ -13,7 +13,7 @@ class OrderParse:
     def __init__(self, step, gbotid, exchange, makerfee, takerfee, accountid, order):
         fee = takerfee
         self.step = step
-        self.oid = order.get(id, uuid.uuid4().hex)
+        self.oid = order.get('id', uuid.uuid4().hex)
         self.ex_orderid = exchange+'_'+self.oid
         self.exchange = exchange
         self.accountid = accountid

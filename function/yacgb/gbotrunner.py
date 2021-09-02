@@ -126,7 +126,7 @@ class GbotRunner:
         #generate a dictionary that represents all orders that match, with a key of the step
         odict={}
         for o in orders_array:
-            logger.debug("closed order: %s, timestamp: %d" % (corder['id'], corder['timestamp']))
+            logger.debug("closed order: %s, timestamp: %d" % (o['id'], o['timestamp']))
             exord = self.gbot.config.exchange + '_' + o['id']
             for g in self.gbot.grid:
                 if g.ex_orderid == exord:
@@ -188,8 +188,8 @@ class GbotRunner:
         #print ("bc", bc)
  
         for r in orderscap.reset_list:
-            logger.info("Reset %d (%s)" %(r.step, x.gbot.grid[r.step].ex_orderid))
-            x.gbot.grid[r.step].ex_orderid = None
+            logger.info("Reset %d (%s)" %(r.step, self.gbot.grid[r.step].ex_orderid))
+            self.gbot.grid[r.step].ex_orderid = None
              
         for c in orderscap.closed_list: 
             for g in self.gbot.grid:
@@ -293,7 +293,7 @@ class GbotRunner:
                 ###g.allocate(buy_quote_quantity, gs, "sell", (g.ticker-self.gbot.config.start_ticker), (g.ticker-last_step))
                 g.mode = "sell"
                 #g.take = (g.ticker-self.gbot.config.start_ticker)*g.sell_base_quantity
-                self.gbot.cost_basis += self.gbot.config.start_ticker*g.sell_base_quantity
+                ##self.gbot.cost_basis += self.gbot.config.start_ticker*g.sell_base_quantity
                 total_sell_q += g.sell_quote_quantity
                 totalq += g.buy_quote_quantity
                 totalb += g.buy_base_quantity
@@ -304,6 +304,7 @@ class GbotRunner:
                 totalq += g.buy_quote_quantity
                 totalb += g.buy_base_quantity
             last_grid_tick = g.ticker
+        self.gbot.cost_basis = self.gbot.config.start_ticker*self.total_sell_b()
         logger.info("Actual, based on current price in grid: total_buy_q %.2f total_sell_q %.8f" % (total_buy_q, total_sell_q)) 
         #logger.info("Theoretical: totalq %.2f totalb %.8f @ %.5f = %.2f" % (totalq, totalb, self.gbot.config.start_ticker, self.gbot.config.start_ticker*totalb)) 
         logger.info("start_quote %.2f start_base: %.8f @ %.5f = %.2f" % (self.gbot.config.start_quote, self.gbot.config.start_base, 

@@ -205,7 +205,7 @@ def test_grid3_backtest(setup_gbot3):
     assert setup_gbot3.gbot.last_ticker == 219.25
     #assert round(setup_gbot3.gbot.profit, 2) == 39.01
     ##assert round(setup_gbot3.gbot.profit, 2) == 25.78
-    assert round(setup_gbot3.gbot.profit, 2) == 32.59
+    assert round(setup_gbot3.gbot.profit, 2) == 32.60
     assert round(setup_gbot3.gbot.step_profit, 2) == 39.36
     assert round(setup_gbot3.gbot.total_fees, 2) == 0.64
     
