@@ -15,7 +15,10 @@ from model.orders import Orders, orders_init
 from yacgb.awshelper import yacgb_aws_ps
 from yacgb.gbotrunner import GbotRunner
 from yacgb.util import base_symbol, quote_symbol, orderid
-from yacgb.ccxthelper import CandleTest
+#from yacgb.ccxthelper import CandleTest
+from yacgb.lookup import ohlcvLookup
+from yacgb.bdt import BacktestDateTime
+from yacgb.indicators import Indicators
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -23,6 +26,8 @@ logger.setLevel(logging.INFO)
 logger.info("CCXT version: %s" % ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
+#OHLCV table lookup cache
+olcache = ohlcvLookup()
 
 myexch = {}
 for e in psconf.exch:
@@ -109,9 +114,26 @@ def lambda_handler(event, context):
         #Get the current ticker and check that we haven't tripped the stop_loss, take_profit, or profit_protect triggers
         #TODO: should we also check that we aren't too far off from the grid step? It may not matter
         # because the grid is now safe in handling multiple closed orders per interval
-        fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
-        logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
-        if x.test_slortp(fticker.last, fticker.high, fticker.low, '*'):
+        timeframe = '1m'
+        nowbdt = BacktestDateTime()
+        lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -300)
+        ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
+        last_bdt = BacktestDateTime(lookup.last)
+        logger.info("%s %s %s tsdiffsec: %f difflastsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt), last_bdt.diffsec(nowbdt)))
+        # check here how far behind the last candle is, and when the record was written
+        if ts_bdt.diffsec(nowbdt) < -29:
+            lookup.update(myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=10))
+            ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
+            logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt)))
+        
+        i = Indicators(lookup.candles_array)
+        logger.info("%s %s dc:%f c:%f h:%f l:%f v:%f rsi:%f macd:%f macds:%f macdh:%f" %(exchange, market_symbol, lookup.dejitter_close(), lookup.close, 
+                                            lookup.high, lookup.low, lookup.volume, i.rsi(), i.macd(), i.macds(), i.macdh()))
+    
+        #fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
+        #logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
+        #if x.test_slortp(fticker.last, fticker.high, fticker.low, '*'):
+        if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*'):
             x.save()
             #State has either changed from active, or was already not active
             for gridstep in x.gbot.grid:

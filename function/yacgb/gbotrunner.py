@@ -100,7 +100,7 @@ class GbotRunner:
             logger.info(ts + " skipped ticker: " + str(tick))
     
     def stepsmatch(self, steps):
-        #generate a dictionary that emulates what a closed order looks like (minimally populated)
+        #generate a dictionary that emulates what a closed order looks like (minimally populated), with a key of the grid step
         odict={}
         for step, price in steps.items():
             order={}
@@ -123,7 +123,7 @@ class GbotRunner:
         return (odict)
     
     def ordersmatch(self, orders_array):
-        #generate a dictionary that represents all orders that match, with a key of the step
+        #generate a dictionary that represents all orders that match, with a key of the grid step
         odict={}
         for o in orders_array:
             logger.debug("closed order: %s, timestamp: %d" % (o['id'], o['timestamp']))
@@ -176,7 +176,8 @@ class GbotRunner:
         for step,order in closed.items():
             orderscap.add(step, order)
         
-        logger.info("closed_list %s reset_list %s" % (str(orderscap.closed_list_steps), str(orderscap.reset_list_steps)))
+        if len(orderscap.closed_list_steps)+len(orderscap.reset_list_steps) > 0:
+            logger.info("closed_list %s reset_list %s" % (str(orderscap.closed_list_steps), str(orderscap.reset_list_steps)))
         
         cindex = self._current_none()
         nindex = self._new_none(cindex, orderscap.closed_list_steps)
@@ -423,7 +424,7 @@ class GbotRunner:
         logger.info("Total Quote: %.5f Total Base: %.8f @ %.5f (%.2f) = %.2f" % (total_q, total_b, self.gbot.last_ticker, (total_b*self.gbot.last_ticker), 
                                                                             total_q + (total_b*self.gbot.last_ticker)))
         logger.info("Base Held Cost Basis: %.2f (%.2f)" % (self.gbot.cost_basis, self.base_cost()))                                                                    
-        logger.info("Transactions %d (fees: %.2f) Profit %.2f/%.2f" % (self.gbot.transactions, self.gbot.total_fees, self.gbot.profit, self.gbot.step_profit))
+        logger.info("Transactions %d (fees: %.2f) Profit %.2f (step: %.2f)" % (self.gbot.transactions, self.gbot.total_fees, self.gbot.profit, self.gbot.step_profit))
         logger.info("state: %s" % self.gbot.state)
         
     def dynamic_grid_adjust(self, new_ticker):
