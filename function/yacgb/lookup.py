@@ -3,6 +3,7 @@
 import datetime
 from datetime import timezone, timedelta
 import logging
+import re
 
 
 from model.ohlcv import OHLCV
@@ -122,7 +123,7 @@ class ohlcvLookup:
             now_tf_ago = BacktestDateTime()
             now_tf_ago.addtf(timeframe, -1)
             if len(o.array) == max_array_size(timeframe, key_btdt.t.year, key_btdt.t.month) and now_tf_ago.laterthan(array_last_btdt):
-                logger.debug ("cache set: 1 and 2 are true, no cache expire")
+                logger.debug ("cache set: 1 & 2 are true, no cache expire")
                 e = False
                 
             last_btdt = BacktestDateTime(o.last)
@@ -293,6 +294,20 @@ class Candles:
             return 0
         return (t/v)
     
+    @property
+    def change(self):
+        open = self.open
+        if open == 0:
+            return 0
+        return round(((self.close-open)/open)*100, 3)
+    
+    @property
+    def amplitude(self):
+        open = self.open
+        if open == 0:
+            return 0
+        return round((abs((self.high-open)/open) + abs((self.low-open)/open))*100, 3)
+        
     def avg_volume(self, trim=True):
         if not trim or len(self.candles_array) < 2:
             return (self.volume/len(self.candles_array))
@@ -320,11 +335,117 @@ class Candles:
             if y[4] < h_close and y[4] > l_close:
                 close = y[4]
         return close
+        
+    def aggregate(self, newtimeframe=None):
+        #take an array of candles and aggregate into a new set. Usually requires starting with: 1m, 1h, 1d; but others might work as well.
+        # See validate_tf for set of valid timeframes, which is restricted to ensure that the offsets always align across time.
+       
+        #this function will always attempt to return an array, even if its just the source array to try and minimize side effects
+        if newtimeframe == None or self.valid == False:
+            return self.candles_array
+        increment = validate_tf(self.timeframe, newtimeframe)
+        if increment < 1:
+            return self.candles_array
+        
+        ret = []
+        array_start = BacktestDateTime(timestamp=self.candles_array[0][0])
+        new_start = BacktestDateTime(timestamp=(array_start.ccxt_timestamp_key(self.timeframe)))
+        print ('array_start', array_start)
+        print ('new_start (key)', new_start)
+        print (self.timeframe)
+        print (newtimeframe, increment)
+        print (self.valid)
+        while array_start.laterthan(new_start):
+            new_start.addtf(self.timeframe, increment)
+            print ('new_start (matched)', new_start)
             
-     
+        
+         
+        started = False
+        x = 0
+        r = None
+        print ("len", len(self.candles_array))
+        while x < len(self.candles_array):
+            #TODO Need to implement this in a slight safer way, where we look at the timestamp of each candle and ensure it is in range. 
+            # This to ensure we do the right thing with missing candles. Otherwise, we'll get out of sync on candle timeframe boundaries.
+            candle_time = BacktestDateTime(timestamp=self.candles_array[x][0])
+            print ("x:", x, candle_time)
+            if self.candles_array[x][0] >= new_start.ccxt_timestamp(self.timeframe):
+                started = True
+            else:
+                #find the start
+                x+=1
+            if started == True:
+                if self.candles_array[x][0] != new_start.ccxt_timestamp(self.timeframe):
+                    print ("ERROR, timestamp doesn't match", new_start)
+                high = []
+                low = []
+                close = None
+                volume = 0
+                # timestamp and open
+                print('initial', self.candles_array[x])
+                r = self.candles_array[x]
+
+                print ('array', len(self.candles_array[x:x+increment]), self.candles_array[x:x+increment])
+                for i in self.candles_array[x:x+increment]:
+                    high.append(i[2])
+                    low.append(i[3])
+                    close = i[4]
+                    volume += i[5]
+                    
+                r[2] = max(high)
+                # low
+                r[3] = min(low)
+                #close
+                r[4] = close
+                #volume
+                r[5] += volume
+                print ('output', r)
+                ret.append(r)
+                x+=increment
+                new_start.addtf(self.timeframe, increment)
+                
+        #TODO: this should probably return another object of class Candles, that will make it easier to do data validation
+        return (ret)
+        
+    
     def __str__(self):
         dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
         dts_st = dts.strftime('%Y%m%d %H:%M')
         dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
         dte_st = dte.strftime('%Y%m%d %H:%M')
-        return ("<Candles s-%s e-%s t-%s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, self.low, self.close, self.volume, self.valid))
+        return ("<Candles s-%s e-%s t-%s o-%f h-%f l-%f c-%f v-%f pc-%f pa-%f ?-%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
+                        self.low, self.close, self.volume, self.change, self.amplitude, self.valid))
+                        
+def validate_tf(current_tf, new_tf=None):
+    validtfs = {'m': [1,2,3,4,5,6,10,12,15,20,30,60],
+                'h': [1,2,3,4,6,8,12,24],
+                'd': [1]
+                }
+    c = re.findall(r'(\d+|[mhd])', current_tf)
+    if len(c) != 2:
+        #parse issue, return a negative number
+        return(-2)
+    
+    if new_tf == None:
+        #just return an integer as it was valid
+        return int(c[0])
+        
+    n = re.findall(r'(\d+|[mhd])', new_tf)
+    if len(n) != 2:
+        #parse issue, return a negative number
+        return(-1)
+    
+    if c[1] != n[1] or int(c[0]) < 1 or int(c[0]) > int(n[0]):
+        #the new and old are not the same type, return 0
+        return (0)
+    
+
+    r = int(n[0]) // int(c[0])
+    if r in validtfs[n[1]]:
+        return r
+    return (0)
+    
+    
+    
+                        

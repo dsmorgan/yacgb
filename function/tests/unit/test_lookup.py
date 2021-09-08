@@ -299,6 +299,8 @@ def test_Candles():
     assert x.wavg_close == 4.045406902210143
     assert x.timeframe == '1d'
     assert x.dejitter_close() == 6
+    assert x.change == -20.714
+    assert x.amplitude == 219.524
     
     
     
