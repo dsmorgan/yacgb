@@ -24,7 +24,7 @@ class BacktestDateTime:
         else: #timestamp != None
             self.t = datetime.datetime.fromtimestamp(timestamp/1000, tz=timezone.utc)
         
-        logger.debug("%s %s" %(str(self.t), str(self.t.tzinfo)))
+        logger.debug("%s %s -> %s %s" %(timestring, timestamp, str(self.t), str(self.t.tzinfo)))
     
     def __str__(self):
         return (self.t.strftime("%Y%m%d %H:%M"))

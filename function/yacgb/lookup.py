@@ -337,75 +337,117 @@ class Candles:
         return close
         
     def aggregate(self, newtimeframe=None):
-        #take an array of candles and aggregate into a new set. Usually requires starting with: 1m, 1h, 1d; but others might work as well.
-        # See validate_tf for set of valid timeframes, which is restricted to ensure that the offsets always align across time.
+        #take an array of candles and aggregate into a new Candles. Usually requires starting with: 1m, 1h, 1d; but others might work as well.
+        # See validate_tf for set of valid timeframes, which is restricted to ensure that the offsets always align across source and 
+        # destination candles.
        
-        #this function will always attempt to return an array, even if its just the source array to try and minimize side effects
-        if newtimeframe == None or self.valid == False:
-            return self.candles_array
-        increment = validate_tf(self.timeframe, newtimeframe)
-        if increment < 1:
-            return self.candles_array
+        #this function will always return an array, although valid=False would indicate its empty of problematic.
+        ret = Candles(newtimeframe, last=self.last)
         
-        ret = []
+        #validate some inputs, parse the requested destination timeframe and compatability with the source timeframe
+        if newtimeframe == None or self.valid == False:
+            return ret
+        increment_tf = validate_tf(self.timeframe, newtimeframe)
+        if increment_tf < 1:
+            return ret
+        
+        #first, need to align the source array and dest array. The dest array timeframe determines how aggregation will occur,
+        # with the intent to ensure consistency across time.
         array_start = BacktestDateTime(timestamp=self.candles_array[0][0])
         new_start = BacktestDateTime(timestamp=(array_start.ccxt_timestamp_key(self.timeframe)))
-        print ('array_start', array_start)
-        print ('new_start (key)', new_start)
-        print (self.timeframe)
-        print (newtimeframe, increment)
-        print (self.valid)
+        logger.debug("array_start %s new_start %s" %(array_start, new_start))
         while array_start.laterthan(new_start):
-            new_start.addtf(self.timeframe, increment)
-            print ('new_start (matched)', new_start)
-            
+            new_start.addtf(self.timeframe, increment_tf)
+            logger.debug("new_start.addtf(%d) %s" % (increment_tf, new_start))
         
-         
+        #new_start now points to the intersection timestamp, determine the next dest timestamp and use
+        # match as an interim timestamp to match in between current and next timestamps.
+        new_next = BacktestDateTime(timestamp=new_start.ccxt_timestamp(self.timeframe))
+        new_next.addtf(self.timeframe, increment_tf)
+        match = BacktestDateTime(timestamp=new_start.ccxt_timestamp(self.timeframe))
         started = False
         x = 0
-        r = None
-        print ("len", len(self.candles_array))
+        logger.debug("len(self.candles_array) %d" % len(self.candles_array))
+        
+        #Here we start to traverse the source array and stuff it into the destination array
         while x < len(self.candles_array):
-            #TODO Need to implement this in a slight safer way, where we look at the timestamp of each candle and ensure it is in range. 
-            # This to ensure we do the right thing with missing candles. Otherwise, we'll get out of sync on candle timeframe boundaries.
-            candle_time = BacktestDateTime(timestamp=self.candles_array[x][0])
-            print ("x:", x, candle_time)
-            if self.candles_array[x][0] >= new_start.ccxt_timestamp(self.timeframe):
-                started = True
-            else:
-                #find the start
-                x+=1
-            if started == True:
-                if self.candles_array[x][0] != new_start.ccxt_timestamp(self.timeframe):
-                    print ("ERROR, timestamp doesn't match", new_start)
-                high = []
-                low = []
-                close = None
-                volume = 0
-                # timestamp and open
-                print('initial', self.candles_array[x])
-                r = self.candles_array[x]
-
-                print ('array', len(self.candles_array[x:x+increment]), self.candles_array[x:x+increment])
-                for i in self.candles_array[x:x+increment]:
-                    high.append(i[2])
-                    low.append(i[3])
-                    close = i[4]
-                    volume += i[5]
-                    
-                r[2] = max(high)
-                # low
-                r[3] = min(low)
-                #close
-                r[4] = close
-                #volume
-                r[5] += volume
-                print ('output', r)
-                ret.append(r)
-                x+=increment
-                new_start.addtf(self.timeframe, increment)
+            if started == False:
+                if self.candles_array[x][0] >= new_start.ccxt_timestamp(self.timeframe):
+                    #Match 1st candle
+                    started = True
+                    logger.debug("started %d %s" % (x, self.candles_array[x][0]))
+                else:
+                    #Haven't started yet, looking to match 1st candles
+                    logger.debug("skipping %d %s" % (x, self.candles_array[x][0]))
+                    x+=1
                 
-        #TODO: this should probably return another object of class Candles, that will make it easier to do data validation
+            if started == True:
+                #all candle_array entries are evaluated from here on
+                if self.candles_array[x][0] >= new_next.ccxt_timestamp(self.timeframe):
+                    #skip to the next target candle
+                    logger.warning("Skipping dest candle %s (match %s) source %s", new_start, match.ccxt_timestamp(self.timeframe), self.candles_array[x][0])
+                    new_next.addtf(self.timeframe, increment_tf)
+                    new_start.addtf(self.timeframe, increment_tf)
+                    match = BacktestDateTime(timestamp=new_start.ccxt_timestamp(self.timeframe))
+                elif self.candles_array[x][0] >= new_start.ccxt_timestamp(self.timeframe):
+                    #the current candle (and possible the next increment of candles) belong in this dest candle
+                    rr=[]
+                    z=0
+                    for y in range(0,increment_tf):
+                        #try to fill the dest candle with up to increment of source candles
+                        if self.candles_array[x][0] == match.ccxt_timestamp(self.timeframe):
+                            rr.append(self.candles_array[x])
+                            x+=1
+                            match.addtf(self.timeframe)
+                            z+=1
+                            if x >= len(self.candles_array):
+                                logger.debug("end of source array %d, break" % x)
+                                break
+                        elif self.candles_array[x][0] < match.ccxt_timestamp(self.timeframe):
+                            logger.error("source candle (%s) now earlier then match(%s) in destination %s, shouldn't happen" % 
+                                            (self.candles_array[x][0], match.ccxt_timestamp(self.timeframe), new_start))
+                            break
+                        #elif self.candles_array[x][0] >= new_next.ccxt_timestamp(self.timeframe):
+                        #   break
+                        else: #self.candles_array[x][0] > match.ccxt_timestamp(self.timeframe)
+                            logger.warning("source candle missing, found (%s) but match (%s) for destination %s" % 
+                                            (self.candles_array[x][0], match.ccxt_timestamp(self.timeframe), new_start))
+                            match.addtf(self.timeframe)
+                    
+                    logger.debug ('destination %s source array(%d) %s' %(new_start, len(rr), rr))
+
+                    if z > 0:
+                        r = []
+                        high = []
+                        low = []
+                        close = None
+                        volume = 0
+                        # timestamp 0
+                        r.append(new_start.ccxt_timestamp(self.timeframe))
+                        # open 1
+                        r.append(rr[0][1])
+ 
+                        for i in rr:
+                            high.append(i[2])
+                            low.append(i[3])
+                            close = i[4]
+                            volume += i[5]
+                        
+                        #high 2   
+                        r.append(max(high))
+                        #low 3
+                        r.append(min(low))
+                        #close 4
+                        r.append(close)
+                        #volume 5
+                        r.append(volume)
+                        logger.debug("output %s" % r)
+                        ret.append(r)
+
+                    new_start.addtf(self.timeframe, increment_tf)
+                    new_next.addtf(self.timeframe, increment_tf)
+                    match = BacktestDateTime(timestamp=new_start.ccxt_timestamp(self.timeframe))
+                    
         return (ret)
         
     
@@ -414,7 +456,7 @@ class Candles:
         dts_st = dts.strftime('%Y%m%d %H:%M')
         dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
         dte_st = dte.strftime('%Y%m%d %H:%M')
-        return ("<Candles s-%s e-%s t-%s o-%f h-%f l-%f c-%f v-%f pc-%f pa-%f ?-%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
+        return ("<Candles s-%s e-%s t-%s o-%f h-%f l-%f c-%f v-%f pc:%f pa:%f ?-%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
                         self.low, self.close, self.volume, self.change, self.amplitude, self.valid))
                         
 def validate_tf(current_tf, new_tf=None):
