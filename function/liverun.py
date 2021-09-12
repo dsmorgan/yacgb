@@ -131,17 +131,17 @@ def lambda_handler(event, context):
         #
         lll = lookup.aggregate('3m')
         iii = Indicators(lll.candles_array)
-        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lll, ts_bdt.diffsec(nowbdt))
+        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lll, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lll.dejitter_close(), iii))
         #
         lllll = lookup.aggregate('5m')
         iiiii = Indicators(lllll.candles_array)
-        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lllll, ts_bdt.diffsec(nowbdt))
+        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lllll, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lllll.dejitter_close(), iiiii))
         #
         tenl = lookup.aggregate('10m')
         teni = Indicators(tenl.candles_array)
-        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt))
+        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
         
     
