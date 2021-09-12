@@ -125,10 +125,25 @@ def lambda_handler(event, context):
             lookup.update(myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=10))
             ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
             logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt)))
-        
+        #
         i = Indicators(lookup.candles_array)
-        logger.info("%s %s dc:%f c:%f h:%f l:%f v:%f rsi:%f macd:%f macds:%f macdh:%f" %(exchange, market_symbol, lookup.dejitter_close(), lookup.close, 
-                                            lookup.high, lookup.low, lookup.volume, i.rsi(), i.macd(), i.macds(), i.macdh()))
+        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
+        #
+        lll = lookup.aggregate('3m')
+        iii = Indicators(lll.candles_array)
+        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lll, ts_bdt.diffsec(nowbdt))
+        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lll.dejitter_close(), iii))
+        #
+        lllll = lookup.aggregate('5m')
+        iiiii = Indicators(lllll.candles_array)
+        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lllll, ts_bdt.diffsec(nowbdt))
+        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lllll.dejitter_close(), iiiii))
+        #
+        tenl = lookup.aggregate('10m')
+        teni = Indicators(tenl.candles_array)
+        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt))
+        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
+        
     
         #fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
         #logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)

@@ -4,7 +4,7 @@ import pytest
 import os, datetime, time
 from datetime import timezone
 
-from yacgb.lookup import validate_tf, Candles
+from yacgb.lookup import validate_tf, Candles, Candle
 
 @pytest.fixture
 def setup_Candles_aggregate():
@@ -144,7 +144,7 @@ def test_Candles_aggregate_compare_60m(setup_Candles_aggregate):
                 assert x[4] == y[4]
                 assert round(x[5],3) == round(y[5],3)
     #because the 1m and 1h candles weren't collected at exactly the same time, the last candles don't match exactly, so skipping it
-    assert found == 7
+    assert found == len(m.candles_array)-1
 
 def test_Candles_aggregate_compare_24h(setup_Candles_aggregate):
     h = setup_Candles_aggregate['pytest_ETH1/USD_1h'].aggregate('24h')
@@ -164,4 +164,128 @@ def test_Candles_aggregate_compare_24h(setup_Candles_aggregate):
                 assert x[4] == y[4]
                 assert round(x[5],3) == round(y[5],3)
     #because the 1h and 1d candles weren't collected at exactly the same time, the last candles don't match exactly, so skipping it
-    assert found == 19
+    assert found == len(h.candles_array)-1
+
+def test_Candles_aggregate_invalid(setup_Candles_aggregate):
+    x = setup_Candles_aggregate['pytest_ETH1/USD_1m'].aggregate()
+    assert x.valid == False
+    assert len(x.candles_array) == 1
+    
+    y = setup_Candles_aggregate['pytest_ETH1/USD_1m'].aggregate('24m')
+    assert y.valid == False
+    assert len(y.candles_array) == 1
+ 
+def test_Candles_aggregate_1m_missing_1m(setup_Candles_aggregate):
+    drop = [1,2,3,4,  20,21,22,   23,24,25,26,27,  28,  48,49,50,51,52,  147,  148,149,150,151,152,  153,  
+                247,  248,249,250,251,252,  253,254,255,256,257,  258,259,260,261,262]
+    p = Candles('1m')
+    for a in range (0, len(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array)):
+        if a in drop:
+            print('dropped', a, 'in', p)
+            continue
+        p.append(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array[a])
+    print ('\np', p, len(p.candles_array))
+    pp = p.aggregate('1m')
+    print ('pp', pp, len(pp.candles_array))
+    assert len(pp.candles_array) == 459
+
+    
+def test_Candles_aggregate_1m_missing_5m(setup_Candles_aggregate):
+    drop = [1,2,3,4,  20,21,22,   23,24,25,26,27,  28,  48,49,50,51,52,  147,  148,149,150,151,152,  153,  
+                247,  248,249,250,251,252,  253,254,255,256,257,  258,259,260,261,262]
+    p = Candles('1m')
+    for a in range (0, len(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array)):
+        if a in drop:
+            print('dropped', a, 'in', p)
+            continue
+        p.append(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array[a])
+    print ('\np', p, len(p.candles_array))
+    pp = p.aggregate('5m')
+    print ('pp', pp, len(pp.candles_array))
+    assert len(pp.candles_array) == 94
+    assert p.close == pp.close
+    
+def test_Candles_aggregate_1m_missing_10m(setup_Candles_aggregate):
+    drop = [1,2,3,4,  20,21,22,   23,24,25,26,27,  28,  48,49,50,51,52,  147,  148,149,150,151,152,  153,  
+                247,  248,249,250,251,252,  253,254,255,256,257,  258,259,260,261,262]
+    p = Candles('1m')
+    for a in range (0, len(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array)):
+        if a in drop:
+            print('dropped', a, 'in', p)
+            continue
+        p.append(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array[a])
+    print ('\np', p, len(p.candles_array))
+    pp = p.aggregate('10m')
+    print ('pp', pp, len(pp.candles_array))
+    assert len(pp.candles_array) == 49
+    assert p.close == pp.close
+    
+def test_Candles_aggregate_1m_ooo_10m(setup_Candles_aggregate):
+    #out-of-order candles
+    drop_cap = [1,40,48,49,50,51,52,53,54,55,56,57,59,61,62,65,67,69]
+    rep = [200,248,249,250,251,252,253,254,255,256,257,258,259,260,261,262,263,499]
+    #drop_cap = [40]
+    #rep=[200]
+    
+    cap = []
+    p = Candles('1m')
+    for a in range (0, len(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array)):
+        if a in drop_cap:
+            print('dropped', a, 'in', p)
+            cap.append(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array[a])
+            continue
+        if a in rep:
+            print ('replace', a, 'in', p)
+            p.append(cap.pop())
+            continue
+        p.append(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array[a])
+    print ('\npytest_ETH1/USD_1m', setup_Candles_aggregate['pytest_ETH1/USD_1m'], len(setup_Candles_aggregate['pytest_ETH1/USD_1m'].candles_array))
+    print ('p', p, len(p.candles_array))
+    
+    pp = p.aggregate('10m')
+    print ('pp', pp, len(pp.candles_array))
+    assert len(pp.candles_array) == 49
+    
+def test_Candles_aggregate_1m_slide_3m(setup_Candles_aggregate):
+    s = 'pytest_XL2/USD_1m'
+    cnt=20
+    end=len(setup_Candles_aggregate[s].candles_array) - cnt
+    print (s, setup_Candles_aggregate[s])
+    full=setup_Candles_aggregate[s].candles_array
+    
+    #for f in full[0:12]:
+    #    ff = Candle(f[0], '1m', f)
+    #    print (f[0], ff)
+    
+    for a in range(0,cnt):
+        now = Candles('1m', full[a:end+a])
+        nxt = Candles('1m', full[1+a:1+end+a])
+        now_a = now.aggregate('3m')
+        print('now_a', now_a)
+        nxt_a = nxt.aggregate('3m')
+        print('nxt_a', nxt_a)
+        for c in nxt_a.candles_array[:-1]:
+            print("search for", c[0])
+            for cc in now_a.candles_array:
+                if c[0] == cc[00]:
+                    print ("match", c, cc)
+                    assert c[1] == cc[1]
+                    assert c[2] == cc[2]
+                    assert c[3] == cc[3]
+                    assert c[4] == cc[4]
+                    #assert round(cc[5],3) == round(cc[5],3)
+                    assert cc[5] == cc[5]
+        if nxt_a.candles_array[-1][0] == now_a.candles_array[-1][0]:
+            print ("last candles match", nxt_a.candles_array[-1][0])
+            #only can gurantee that the open candle is the same for the last
+            assert nxt_a.candles_array[-1][1] == now_a.candles_array[-1][1]
+            #and that the volume is equal or larger
+            assert nxt_a.candles_array[-1][5] >= now_a.candles_array[-1][5]
+            
+            
+        
+                    
+        
+        
+        
+    

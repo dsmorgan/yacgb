@@ -11,16 +11,22 @@ class Indicators:
         df = pd.DataFrame(candles_array, columns=header)
         self.sdf  = StockDataFrame.retype(df)
     
+    @property
     def rsi(self):
         return self.sdf['rsi_14'].iloc[-1] 
-        
+
+    @property
+    def macd(self):
+        return self.sdf['macd'].iloc[-1] 
+    
+    @property    
     def macds(self):
         return self.sdf['macds'].iloc[-1] 
     
-    def macd(self):
-        return self.sdf['macd'].iloc[-1] 
-        
+    @property    
     def macdh(self):
         return self.sdf['macdh'].iloc[-1] 
-        
+    
+    def __str__(self):
+        return ("<Indicators rsi:%f macd:%f macds:%f macdh:%f>" % (self.rsi, self.macd, self.macds, self.macdh))
         

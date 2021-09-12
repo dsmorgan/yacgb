@@ -389,31 +389,34 @@ class Candles:
                     new_next.addtf(self.timeframe, increment_tf)
                     new_start.addtf(self.timeframe, increment_tf)
                     match = BacktestDateTime(timestamp=new_start.ccxt_timestamp(self.timeframe))
+                
                 elif self.candles_array[x][0] >= new_start.ccxt_timestamp(self.timeframe):
                     #the current candle (and possible the next increment of candles) belong in this dest candle
                     rr=[]
                     z=0
                     for y in range(0,increment_tf):
+                        #catch an unlikley scenario, if we find candles out of order we  need to skip them
+                        while x < len(self.candles_array) and self.candles_array[x][0] < match.ccxt_timestamp(self.timeframe):
+                            logger.error("source candle (%s) now earlier then match(%s) in destination %s, out of sequence" % 
+                                            (self.candles_array[x][0], match.ccxt_timestamp(self.timeframe), new_start))
+                            x+=1
+                          
+                        #We have to check this again in case the while loop ran to end of array (corner case)
+                        if x >= len(self.candles_array):
+                            logger.debug("end of source array %d, break" % x)
+                            break  
+            
                         #try to fill the dest candle with up to increment of source candles
                         if self.candles_array[x][0] == match.ccxt_timestamp(self.timeframe):
                             rr.append(self.candles_array[x])
                             x+=1
-                            match.addtf(self.timeframe)
                             z+=1
-                            if x >= len(self.candles_array):
-                                logger.debug("end of source array %d, break" % x)
-                                break
-                        elif self.candles_array[x][0] < match.ccxt_timestamp(self.timeframe):
-                            logger.error("source candle (%s) now earlier then match(%s) in destination %s, shouldn't happen" % 
-                                            (self.candles_array[x][0], match.ccxt_timestamp(self.timeframe), new_start))
-                            break
-                        #elif self.candles_array[x][0] >= new_next.ccxt_timestamp(self.timeframe):
-                        #   break
                         else: #self.candles_array[x][0] > match.ccxt_timestamp(self.timeframe)
                             logger.warning("source candle missing, found (%s) but match (%s) for destination %s" % 
                                             (self.candles_array[x][0], match.ccxt_timestamp(self.timeframe), new_start))
-                            match.addtf(self.timeframe)
-                    
+                        match.addtf(self.timeframe)
+
+                        
                     logger.debug ('destination %s source array(%d) %s' %(new_start, len(rr), rr))
 
                     if z > 0:
