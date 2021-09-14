@@ -40,6 +40,7 @@ def test_orders1(setup_orders1):
     assert setup_orders1.closed_list[0].cost == 400
     assert setup_orders1.closed_list[0].fee_cost == 4
     assert setup_orders1.closed_list[0].average == 100
+    assert setup_orders1.closed_list[0].timestamp == 0
     
     torder= {
         'symbol': 'XXX1/USD',
@@ -153,4 +154,8 @@ def test_orders2(setup_orders1):
     assert len(setup_orders1.reset_list) == 0
     assert len(setup_orders1.closed_list) == 2
     assert setup_orders1.closed_list[0].fee_cost == 0.78
+    assert setup_orders1.closed_list[0].timestamp == 1618239581831
+    assert setup_orders1.closed_list[0].timestamp_st == '2021-04-12 14:59:41'
     assert setup_orders1.closed_list[1].fee_cost == 10
+    assert setup_orders1.closed_list[1].timestamp == 1618901627812
+    assert setup_orders1.closed_list[1].timestamp_st == '2021-04-20 06:53:47'

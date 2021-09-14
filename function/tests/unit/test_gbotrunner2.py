@@ -49,7 +49,7 @@ def setup_gbot4(request):
 
     
 @local_dynamo_avail
-def test_grid4(setup_gbot4):
+def test_grid4_dynamic_grid_adjust(setup_gbot4):
     print("Grid...", setup_gbot4.gbot.gbotid)
     for g in setup_gbot4.gbot.grid:
         print ("%2d %0.3f %4s buy %0.3f %0.5f sell %0.3f %0.5f  counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.buy_quote_quantity, g.buy_base_quantity,
@@ -58,11 +58,11 @@ def test_grid4(setup_gbot4):
     assert setup_gbot4.grids() == 6
     assert setup_gbot4.gbot.state == 'active'
     assert setup_gbot4.total_buy_q() == 600
-    assert setup_gbot4.total_sell_b() == 1.9124
+    assert setup_gbot4.total_sell_b() == 1.91244
     assert setup_gbot4.gbot.need_quote == 0
     assert setup_gbot4.gbot.need_base == 0
     assert setup_gbot4.gbot.balance_quote == 100
-    assert setup_gbot4.gbot.balance_base == 3.0876
+    assert setup_gbot4.gbot.balance_base == 3.08756
     
     setup_gbot4.dynamic_grid_adjust(245.11)
     setup_gbot4.dynamic_grid_adjust(199.65)
@@ -75,7 +75,7 @@ def test_grid4(setup_gbot4):
                 g.sell_quote_quantity, g.sell_base_quantity, g.buy_count, g.sell_count, g.ex_orderid))
     
     assert setup_gbot4.total_buy_q() == 600
-    assert setup_gbot4.total_sell_b() == 1.9124
+    assert setup_gbot4.total_sell_b() == 1.91244
     
     
 @local_dynamo_avail   
@@ -127,7 +127,7 @@ def test_grid4_backtest2(setup_gbot4):
     #assert round(setup_gbot4.gbot.profit, 2) == 39.01
     ##assert round(setup_gbot4.gbot.profit, 2) == 25.78
     ###assert round(setup_gbot4.gbot.profit, 2) == 23.4
-    assert round(setup_gbot4.gbot.profit, 2) == 31.17
+    assert round(setup_gbot4.gbot.profit, 2) == 31.16
     assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
     assert round(setup_gbot4.gbot.total_fees, 2) == 0.64
 
@@ -143,7 +143,7 @@ def setup_gbot5(request):
             'reserve': 0, 
             'live_balance': False, 
             'start_base': 4, 
-            'start_quote': 500, 
+            'start_quote': 600, 
             'makerfee': 0, 
             'takerfee': 0, 
             'feecurrency': 'USD', 
@@ -334,7 +334,7 @@ def test_grid5_closed_adjust_ordersmatch_binanceus(setup_gbot5):
         print ("%2d %0.3f %4s %s buy (b/q) %0.5f/%0.3f sell (b/q) %0.5f/%0.3f counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.type, g.buy_base_quantity, g.buy_quote_quantity,
                 g.sell_base_quantity, g.sell_quote_quantity, g.buy_count, g.sell_count, g.ex_orderid))
     
-    assert setup_gbot5.gbot.cost_basis == 362.25
+    assert round(setup_gbot5.gbot.cost_basis, 2) == 362.25
     assert round(setup_gbot5.base_cost(), 2) == 150
     
     setup_gbot5.closed_adjust(setup_gbot5.ordersmatch(binanceus_sample), '*')
@@ -351,7 +351,18 @@ def test_grid5_closed_adjust_ordersmatch_binanceus(setup_gbot5):
     assert round(setup_gbot5.base_cost(), 2) == 150
     
     
-
+@local_dynamo_avail   
+def test_grid5_open_orders(setup_gbot5):
+    o = 'bogus_97289161'
+    setup_gbot5.totals()
+    assert setup_gbot5.open_orders == False
+    print ("add order", o)
+    setup_gbot5.gbot.grid[7].ex_orderid = o
+    setup_gbot5.save()
+    setup_gbot5.totals()
+    assert setup_gbot5.open_orders == True
+    
+    
 
     
    

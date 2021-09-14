@@ -27,7 +27,17 @@ class OrderParse:
         self.status = order.get('status', 'canceled')
         self.market_symbol = order.get('symbol')
         self.symbol = order.get('symbol')
-        self.timestamp = order.get('timestamp', 0)
+        #timestamp is usually the time the order was opened, and we want to know when it was closed
+        #Unfortunately, this isn't standardardized. 
+        #  -Kraken uses info/closedtm (and need to be multiplied by 1000)
+        #  -Binancus uses info/updateTime
+        # Unclear what other formats may exist, so fall-back to using timestamp when the above don't exit
+        if order.get('info', None) != None and order['info'].get('closetm', None) != None:
+            self.timestamp = int(order['info'].get('closetm', 0) * 1000)
+        elif order.get('info', None) != None and order['info'].get('updateTime', None) != None:
+            self.timestamp = int(order['info'].get('updateTime', 0))
+        else:
+            self.timestamp = int(order.get('timestamp', 0))
         self.timestamp_st=datetime.datetime.fromtimestamp(self.timestamp/1000, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         
         if order.get('fee', None) != None:

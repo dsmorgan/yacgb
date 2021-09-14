@@ -60,60 +60,15 @@ def lambda_handler(event, context):
         qs = quote_symbol(market_symbol)
         
         corders =[]
-        #closed_list=[]
-        #reset_list=[]
-        
-        if x.gbot.state == 'active':
+
+        # Regardless of state, we'll check for closed orders only if there are open orders for this gbot
+        if x.open_orders:
             #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
             corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
             logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
         
         x.closed_adjust(x.ordersmatch(corders), '*')
         
-        # ### <---
-        # #Look at closed orders, and match against what is in gbot
-        # for corder in corders:
-        #     logger.debug("closed order: %s, timestamp: %d" % (corder['id'], corder['timestamp']))
-        #     matched_step = x.check_id(exchange, corder['id'])
-
-        #     if matched_step != None:
-        #         if corder['status'] == 'canceled':
-        #             #add it to the list to reset the order
-        #             reset_list.append(matched_step)
-        #             logger.warning("Canceled order (%d), resetting: %s %s" % (matched_step, exchange, corder['id']))
-        #             #setting this grid to None will trigger it to be reset
-        #             x.gbot.grid[matched_step].ex_orderid = None
-        #             #don't do anything else with this step, next order
-        #         else:
-        #             #add it to list to recalculate the grid, and replace the buy/sell w/ the approproate sell/buy
-        #             closed_list.append(matched_step)
-        #             ###This should be seperated to a class, the class should handle both writing to the table, and replace the
-        #             ### matched_step so that additional values that we require are passed to gbot (step, price, base_amt, quote_amt, fee)
-                    
-        #             #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
-        #             # Problem is, this isn't consistent between exchanges
-        #             ####TODO bug related to fee.cost and fee.currency not always being defined. Where do we get this? Might have to set to zeros for now
-        #             ord = Orders(exchange+'_'+corder['id'], exchange=exchange, accountid=None, gbotid=x.gbot.gbotid, market_symbol=corder['symbol'], timestamp=corder['timestamp'], 
-        #                 timestamp_st=datetime.datetime.fromtimestamp(corder['timestamp']/1000, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
-        #                 side=corder['side'], type=corder['type'], status=corder['status'], cost=corder['cost'], price=corder['price'], amount=corder['amount'], 
-        #                 #average=corder['average'], fee_cost=corder['fee']['cost'], fee_currency=corder['fee']['currency'], raw=corder
-        #                 average=corder['average'], fee_cost=0, fee_currency='USD', raw=corder
-        #                 )
-        #             #x.gbot.last_order_ts=corder['timestamp'] <--this isn't correct, need to find a better solution
-        #             #TODO: There doesn't seem to be a safe way to filter the corder list based on 'since'.
-        #             ord.save()
-    
-        # #logger.info("closed_list %s reset_list %s" % (str(closed_list), str(reset_list)))
-        # # sequence list, in case there were multiple orders that matched. Order no longer matters
-        
-        # # apply x.closed_adjust() against each grid that closed (closed_list), which was collected as a match of a closed order, 
-        # # ensure that resets the ex_orderid too. This reconfigures the grid, moving the current "NONE" grid either up or down and then we can reset the orders
-        # x.closed_adjust(closed_list, '*')
-        # ### <---
-            
-        #Get the current ticker and check that we haven't tripped the stop_loss, take_profit, or profit_protect triggers
-        #TODO: should we also check that we aren't too far off from the grid step? It may not matter
-        # because the grid is now safe in handling multiple closed orders per interval
         timeframe = '1m'
         nowbdt = BacktestDateTime()
         lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -300)
@@ -144,15 +99,12 @@ def lambda_handler(event, context):
         logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
         
-    
-        #fticker = CandleTest(myexch[exchange].fetchOHLCV(market_symbol, '1m', limit=3))
-        #logger.info("%s %s last %f h/l %f/%f", exchange, market_symbol, fticker.last, fticker.high, fticker.low)
-        #if x.test_slortp(fticker.last, fticker.high, fticker.low, '*'):
         if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*'):
             x.save()
             #State has either changed from active, or was already not active
             for gridstep in x.gbot.grid:
                 #cancel each open order
+                gridcancel = None
                 if gridstep.ex_orderid != None:
                     try:
                         logger.info("%d> canceling order %s" % (gridstep.step, gridstep.ex_orderid))
@@ -160,7 +112,7 @@ def lambda_handler(event, context):
                         gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid), market_symbol)
                         logger.info(str(gridcancel))
                     except ccxt.OrderNotFound:
-                        logger.warning("%s OrderNotFound" % gridstep.ex_orderid)
+                        logger.warning("%s OrderNotFound: %s" % (gridstep.ex_orderid, gridcancel)
                     gridstep.ex_orderid = None
             #Need to save again
             x.save()
@@ -230,5 +182,3 @@ if __name__ == "__main__":
         sleep_time = 60 - (time.time()-25) % 60
         logging.info("sleeping %f error count %d" %(sleep_time, error_count))
         time.sleep(sleep_time)
-        
-        

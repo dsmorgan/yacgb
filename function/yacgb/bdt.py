@@ -47,7 +47,7 @@ class BacktestDateTime:
     def diffsec(self, anotherbdt=None):
         return ((self.t-anotherbdt.t).total_seconds())
         
-    def dtstf(self, tf='1h'):
+    def dtstf(self, tf='1m'):
         if tf == '1m':
             return (self.t.strftime("%Y%m%d %H:%M"))
         elif tf == '1h':
@@ -55,7 +55,7 @@ class BacktestDateTime:
         #elif tf == '1d'
         return (self.t.strftime("%Y%m%d 00:00"))
         
-    def dtskey(self, tf='1h'):
+    def dtskey(self, tf='1m'):
         if tf == '1m':
             return (self.t.strftime("%Y%m%d %H:00"))
         elif tf == '1h':
@@ -63,7 +63,7 @@ class BacktestDateTime:
         #elif tf == '1d'
         return (self.t.strftime("%Y%m01 00:00"))
             
-    def addtf(self, tf='1h', offset=1):
+    def addtf(self, tf='1m', offset=1):
         if tf == '1m':
             self.t = self.t + datetime.timedelta(minutes=offset)
         elif tf == '1h':
@@ -71,7 +71,7 @@ class BacktestDateTime:
         else: #tf == '1d', increment a day if not 1m or 1h
             self.t = self.t + datetime.timedelta(days=offset)
             
-    def addkey(self, tf='1h', offset=1):
+    def addkey(self, tf='1m', offset=1):
         if tf == '1m':
             self.t = self.t + datetime.timedelta(hours=offset)
         elif tf == '1h':
@@ -85,7 +85,7 @@ class BacktestDateTime:
             minute = self.t.minute
             self.t =  datetime.datetime(year, month, day, hour=hour, minute=minute, tzinfo=timezone.utc)
             
-    def ccxt_timestamp(self, tf='1h'):
+    def ccxt_timestamp(self, tf='1m'):
         if tf == '1m':
             return (int(self.t.replace(second=0, microsecond=0).timestamp()*1000))
         elif tf == '1h':
@@ -93,15 +93,10 @@ class BacktestDateTime:
         #elif timeframe == '1d':
         return (int(self.t.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()*1000))
          
-    def ccxt_timestamp_key(self, tf='1h'):
+    def ccxt_timestamp_key(self, tf='1m'):
         if tf == '1m':
             return (int(self.t.replace(minute=0, second=0, microsecond=0).timestamp()*1000))
         elif tf == '1h':
             return (int(self.t.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()*1000))
         #elif timeframe == '1d':
         return (int(self.t.replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp()*1000))
-    
-  
-        
-    
-        
