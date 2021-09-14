@@ -43,66 +43,61 @@ def better_bool(s):
         return (True)
     else:
         return (False)
-
-def exists_or_default(key, d, default):
-    if key in d:
-        return (d[key])
-    else:
-        return (default)
             
 def event2config(e, exch_dict, must_match=False):
     conf = {}
     #"exchange": "kraken",
-    conf['exchange'] = exists_or_default('exchange', e, "not_set")
+    conf['exchange'] =e.get('exchange', "not_set")
     if (conf['exchange']=="not_set" or (must_match and not conf['exchange'] in exch_dict)):
         logger.critical("exchange in event config doesn't match environment %s::%s" % (conf['exchange'], str(exch_dict.keys())))
         exit()
     #"market_symbol": "LTC/USD", 
-    conf['market_symbol'] = exists_or_default('market_symbol', e, "not_set")
+    conf['market_symbol'] =e.get('market_symbol', "not_set")
     if (conf['market_symbol']=="not_set" or (must_match and not conf['market_symbol'] in exch_dict[conf['exchange']])):
         logger.critical("market_symbol in event config doesn't match environment %s::%s" % (conf['market_symbol'], str(exch_dict[conf['exchange']])))
         exit()
     #"grid_spacing": 0.05, 
-    conf['grid_spacing'] = exists_or_default('grid_spacing', e, 0.04)
+    conf['grid_spacing'] =e.get('grid_spacing', 0.04)
     #"total_quote": 1000, 
-    conf['total_quote'] = exists_or_default('total_quote', e, None)
+    conf['total_quote'] =e.get('total_quote', None)
     #"max_ticker": 300, 
-    conf['max_ticker'] = exists_or_default('max_ticker', e, None)
+    conf['max_ticker'] =e.get('max_ticker', None)
     #"min_ticker": 150, 
-    conf['min_ticker'] = exists_or_default('min_ticker', e, None)
+    conf['min_ticker'] =e.get('min_ticker', None)
     #"reserve": 0,
-    conf['reserve'] = exists_or_default('reserve', e, 0.0)
+    conf['reserve'] =e.get('reserve', 0.0)
     #"live_balance": "False",
-    conf['live_balance'] = better_bool(exists_or_default('live_balance', e, False))
+    conf['live_balance'] = better_bool(e.get('live_balance', False))
     #"start_base": 0,
-    conf['start_base'] = exists_or_default('start_base', e, 0.0)
+    conf['start_base'] =e.get('start_base', 0.0)
     #"start_quote": 1100, 
-    conf['start_quote'] = exists_or_default('start_quote', e, 0.0)
+    conf['start_quote'] = e.get('start_quote', 0.0)
     #"makerfee": 0.0026,
-    conf['makerfee'] = exists_or_default('makerfee', e, 0.0026)
+    conf['makerfee'] = e.get('makerfee', 0.0026)
     #"takerfee": 0.0016, 
-    conf['takerfee'] = exists_or_default('takerfee', e, 0.0016)
+    conf['takerfee'] = e.get('takerfee', 0.0016)
     #"feecurrency": "USD",
-    conf['feecurrency'] = exists_or_default('feecurrency', e, 'USD')
+    conf['feecurrency'] = e.get('feecurrency', 'USD')
     #"start": "20210422 16:00",
     nowts = BacktestDateTime()
-    conf['backtest_start'] = exists_or_default('backtest_start', e, nowts.dtsmin())
+    conf['backtest_start'] = e.get('backtest_start', nowts.dtsmin())
     #"end": "20210422 17:00",
-    conf['backtest_end'] = exists_or_default('backtest_end', e, nowts.dtsmin())
+    conf['backtest_end'] = e.get('backtest_end', nowts.dtsmin())
     #"timeframe": "1h"
-    conf['backtest_timeframe'] = exists_or_default('backtest_timeframe', e, "1h")
+    conf['backtest_timeframe'] = e.get('backtest_timeframe', "1h")
     if conf['backtest_timeframe'] not in ['1d', '1h', '1m']:
         logger.warning("timeframe in event not valid (%s), setting to default: 1h" % conf['backtest_timeframe'])
         conf['backtest_timeframe'] = "1h"
     
-    conf['max_percent_start'] = exists_or_default('max_percent_start', e, None)
-    conf['min_percent_start'] = exists_or_default('min_percent_start', e, None)
-    conf['stop_loss'] = exists_or_default('stop_loss', e, None)
-    conf['stop_loss_precent_min'] = exists_or_default('stop_loss_precent_min', e, None)
-    conf['take_profit'] = exists_or_default('take_profit', e, None)
-    conf['take_profit_percent_max'] = exists_or_default('take_profit_percent_max', e, None)
-    conf['init_market_order'] = better_bool(exists_or_default('init_market_order', e, False))
-    conf['profit_protect_percent'] = exists_or_default('profit_protect_percent', e, None)
+    conf['max_percent_start'] = e.get('max_percent_start', None)
+    conf['min_percent_start'] = e.get('min_percent_start', None)
+    conf['stop_loss'] = e.get('stop_loss', None)
+    conf['stop_loss_precent_min'] = e.get('stop_loss_precent_min', None)
+    conf['take_profit'] = e.get('take_profit', None)
+    conf['take_profit_percent_max'] = e.get('take_profit_percent_max', None)
+    conf['init_market_order'] = better_bool(e.get('init_market_order', False))
+    conf['profit_protect_percent'] = e.get('profit_protect_percent', None)
+    conf['dynamic_grid'] = better_bool(e.get('dynamic_grid', False))
     return (conf)
     
 def configsetup(c, start_ticker):

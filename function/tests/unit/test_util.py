@@ -33,7 +33,7 @@ def test_event2config1():
     c = event2config(event, exch, must_match=True)
     
     #Required
-    assert len(c) == 24
+    assert len(c) == 25
     assert c['exchange'] == 'kraken'
     assert c['market_symbol'] == 'LTC/USD'
     #Defaults
@@ -79,7 +79,7 @@ def test_configsetup1():
     c = event2config(e, exch, must_match=True)
     c = configsetup(c, 100)
     
-    assert len(c) == 25
+    assert len(c) == 26
     assert c['start_ticker'] == 100
     assert c['max_ticker'] == 125
     assert c['min_ticker'] == 75

@@ -144,7 +144,55 @@ def test_orders2(setup_orders1):
     'timeInForce': 'GTC',
     'timestamp': 1618894134191,
     'trades': None,
-    'type': 'limit'}]
+    'type': 'limit'},
+    {   'amount': 2.0,
+        'average': 246.11,
+        'clientOrderId': '0',
+        'cost': 492.22,
+        'datetime': '2021-04-12T13:49:34.127Z',
+        'fee': {'cost': 0.78, 'currency': 'USD', 'rate': None},
+        'filled': 2.0,
+        'id': 'OS63K7-6I4HL-4HIFIS',
+        'info': {   'closetm': '1618239581.8319',
+                    'cost': '492.22',
+                    'descr': {   'close': '',
+                                 'leverage': 'none',
+                                 'order': 'buy 2.00000000 LTCUSD @ limit '
+                                          '246.11',
+                                 'ordertype': 'limit',
+                                 'pair': 'LTCUSD',
+                                 'price': '246.11',
+                                 'price2': '0',
+                                 'type': 'buy'},
+                    'expiretm': 0,
+                    'fee': '0.78',
+                    'id': 'OS63K7-6I4HL-4HIFIS',
+                    'limitprice': '0.00000',
+                    'misc': '',
+                    'oflags': 'fciq',
+                    'opentm': 1618235374.1276,
+                    'price': '246.11',
+                    'reason': None,
+                    'refid': None,
+                    'starttm': 0,
+                    'status': 'closed',
+                    'stopprice': '0.00000',
+                    'userref': 0,
+                    'vol': '2.00000000',
+                    'vol_exec': '2.00000000'},
+        'lastTradeTimestamp': None,
+        'postOnly': None,
+        'price': 246.11,
+        'remaining': 0.0,
+        'side': 'buy',
+        'status': 'closed',
+        'stopPrice': 0.0,
+        'symbol': 'LTC/USD',
+        'timeInForce': None,
+        'timestamp': 1618235374127,
+        'trades': None,
+        'type': 'limit'}
+    ]
     
     cnt = 0
     for t in torders:
@@ -152,10 +200,14 @@ def test_orders2(setup_orders1):
         setup_orders1.add(cnt, t)
         
     assert len(setup_orders1.reset_list) == 0
-    assert len(setup_orders1.closed_list) == 2
+    assert len(setup_orders1.closed_list) == 3
     assert setup_orders1.closed_list[0].fee_cost == 0.78
     assert setup_orders1.closed_list[0].timestamp == 1618239581831
     assert setup_orders1.closed_list[0].timestamp_st == '2021-04-12 14:59:41'
     assert setup_orders1.closed_list[1].fee_cost == 10
     assert setup_orders1.closed_list[1].timestamp == 1618901627812
     assert setup_orders1.closed_list[1].timestamp_st == '2021-04-20 06:53:47'
+    #added to address scenario where closetm is a string (same data as closed_list[0])
+    assert setup_orders1.closed_list[2].fee_cost == 0.78
+    assert setup_orders1.closed_list[2].timestamp == 1618239581831
+    assert setup_orders1.closed_list[2].timestamp_st == '2021-04-12 14:59:41'

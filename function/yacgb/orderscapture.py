@@ -32,8 +32,9 @@ class OrderParse:
         #  -Kraken uses info/closedtm (and need to be multiplied by 1000)
         #  -Binancus uses info/updateTime
         # Unclear what other formats may exist, so fall-back to using timestamp when the above don't exit
+        # Also, sometimes these are strings and sometimes these are numbers, needs to be normalized to int
         if order.get('info', None) != None and order['info'].get('closetm', None) != None:
-            self.timestamp = int(order['info'].get('closetm', 0) * 1000)
+            self.timestamp = int(float(order['info'].get('closetm', 0)) * 1000)
         elif order.get('info', None) != None and order['info'].get('updateTime', None) != None:
             self.timestamp = int(order['info'].get('updateTime', 0))
         else:
