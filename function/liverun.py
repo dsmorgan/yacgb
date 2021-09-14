@@ -112,7 +112,7 @@ def lambda_handler(event, context):
                         gridcancel = myexch[exchange].cancelOrder(orderid(gridstep.ex_orderid), market_symbol)
                         logger.info(str(gridcancel))
                     except ccxt.OrderNotFound:
-                        logger.warning("%s OrderNotFound: %s" % (gridstep.ex_orderid, gridcancel)
+                        logger.warning("%s OrderNotFound: %s" % (gridstep.ex_orderid, gridcancel))
                     gridstep.ex_orderid = None
             #Need to save again
             x.save()
