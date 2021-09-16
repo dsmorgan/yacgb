@@ -65,10 +65,12 @@ class GbotRunner:
                 logger.warning('%s changed state to: %s (%f) profit_protect_percent: %f at_high_ticker: %f' % 
                                     (ts, self.gbot.state, last_tick, self.gbot.config.profit_protect_percent, self.gbot.at_high_ticker))
                 return True
+            # returning False is the normal case when we are still active, yet not past stop_loss, take_profit, or profit_protect thresholds
             return False
         return True
 
-    def backtest(self, tick=0, ts=BacktestDateTime().dtstf()):
+    def backtest(self, tick=0, ts=BacktestDateTime().dtstf(), indicator=None):
+        self.dynamic_set_triggers()
         if tick > 0 and not self.test_slortp(tick, tick, tick, ts):
             # find lowest sell and highest buy grids
             lowest_sell = 999999999
@@ -82,25 +84,42 @@ class GbotRunner:
             for g in self.gbot.grid:
                 pts = []
                 if g.mode == 'sell' and g.ticker < lowest_sell:
+                    # For debug
                     lowest_sell = g.ticker
                     sell_grid = g.step
-                if g.mode == 'sell' and g.ticker <= tick:
-                    # In some cases in the future, this might need to be tick instead of g.ticker
+                if g.mode == 'sell' and g.type == 'limit' and g.ticker <= tick:
+                    # static grid, use the g.ticker (limit price)
                     pts.append(g.ticker)
                     pts.append(timestamp)
                     closed_dict[g.step] = pts
+                if self.gbot.config.dynamic_grid and g.mode == 'sell' and g.type == 'trigger' and g.ticker <= tick:
+                    if indicator == None or indicator.sell_indicator:
+                        # For a dynamic grid, use tick instead of g.ticker
+                        pts.append(tick)
+                        pts.append(timestamp)
+                        closed_dict[g.step] = pts
+                    else:
+                        logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
                 if g.mode == 'buy' and g.ticker > highest_buy:
+                    # For debug
                     highest_buy = g.ticker
                     buy_grid = g.step
-                if g.mode == 'buy' and g.ticker >= tick:
-                    # In some cases in th future, this might need to be tick instead of g.ticker
+                if g.mode == 'buy' and g.type != None and g.ticker >= tick:
+                    # static grid, use the g.ticker (limit price)
                     pts.append(g.ticker)
                     pts.append(timestamp)
                     closed_dict[g.step] = pts
+                if self.gbot.config.dynamic_grid and g.mode == 'buy' and g.type == 'trigger' and g.ticker >= tick:
+                    if indicator == None or indicator.buy_indicator:
+                        # For a dynamic grid, use tick instead of g.ticker
+                        pts.append(tick)
+                        pts.append(timestamp)
+                        closed_dict[g.step] = pts
+                    else:
+                        logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                
             logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_dict)))  
             
-            #for gg in closed_array:
-            #    self.reset(self.gbot.grid[gg].ticker, ts)
             self.closed_adjust(self.stepsmatch(closed_dict), ts)
         
         else:
@@ -180,7 +199,7 @@ class GbotRunner:
         return (none_index + up - down)
     
     def closed_adjust(self, closed={}, timestamp=''):
-        #use orderscap to parse and seperate reset from closed lists
+        #use orderscap to parse and seperate reset from closed lists orders
         orderscap = OrdersCapture(self.gbot.gbotid, self.gbot.exchange, self.gbot.config.makerfee, self.gbot.config.takerfee)
         
         for step,order in closed.items():
@@ -252,8 +271,11 @@ class GbotRunner:
                     logger.info("Limit Sell %.8f @ %.5f Total: %.2f" % (g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
             elif g.step == nindex:
                 if g.mode != "NONE":
-                    logger.error("step %d, ticker  %.5f, mode should be NONE, but was %s, resetting" % (g.step, g.ticker, g.mode))
+                    logger.error("step %d, ticker %.5f, mode should be NONE, but was %s, resetting" % (g.step, g.ticker, g.mode))
                     g.mode = "NONE"
+        
+        if len(orderscap.closed_list) > 0:
+            self.dynamic_grid_adjust(orderscap.closed_list[0].price)
         
         
     def grids(self):
@@ -418,8 +440,8 @@ class GbotRunner:
         total_q = self.gbot.balance_quote
     
         for g in self.gbot.grid:
-            logger.info(">%d %s %.5f (%.2f) <%d/%d> buybase %.8f sellbase %.8f %.2f %s" % (g.step, g.mode, g.ticker, g.buy_quote_quantity, 
-                                    g.buy_count, g.sell_count, g.buy_base_quantity, g.sell_base_quantity, g.sell_quote_quantity, g.ex_orderid))
+            logger.info(">%d %s/%s %.5f <%d/%d> buybase %.8f (%.2f) sellbase %.8f (%.2f) %s" % (g.step, g.type, g.mode, g.ticker, g.buy_count, g.sell_count, 
+                        g.buy_base_quantity, g.buy_quote_quantity, g.sell_base_quantity, g.sell_quote_quantity, g.ex_orderid))
             if g.mode == 'buy':
                 # add up the quote
                 total_q += g.buy_quote_quantity
@@ -433,12 +455,49 @@ class GbotRunner:
         logger.info("Transactions %d (fees: %.2f) Profit %.2f (step: %.2f)" % (self.gbot.transactions, self.gbot.total_fees, self.gbot.profit, self.gbot.step_profit))
         logger.info("state: %s" % self.gbot.state)
         
+    def dynamic_set_triggers(self):
+        if self.gbot.config.dynamic_grid:
+            n = self._current_none()
+            f = []
+            f.append(n-1)
+            #f.append(n)
+            f.append(n+1)
+            for g in self.gbot.grid:
+                if g.step in f:
+                    g.type = 'trigger'
+                else:
+                    g.type = None
+        else:
+            for g in self.gbot.grid:
+                g.type = 'limit'
+                
+    def dynamic_check_triggers(self, tick, indicator):
+        #This is only need for live (not backtesting), where we need to change a trigger to limit to initative a new order
+        if  self.gbot.config.dynamic_grid and tick > 0:
+            for g in self.gbot.grid:
+                if g.mode == 'sell' and g.type == 'trigger' and g.ticker <= tick:
+                    if indicator.sell_indicator:
+                        #toggle type from trigger to limit, so that it triggers an order
+                        g.type = 'limit'
+                    else:
+                       logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                if g.mode == 'buy' and g.type == 'trigger' and g.ticker >= tick:
+                    if indicator.buy_indicator:
+                        #toggle type from trigger to limit, so that it triggers an order
+                        g.type = 'limit'
+                    else:
+                       logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                    
     def dynamic_grid_adjust(self, new_ticker):
-        #check no open orders 1st?
+        if not self.gbot.config.dynamic_grid:
+            #skip this function if we aren't in dynamic mode
+            return
+        #TODO: check no open orders 1st?
         sell_amt = self.total_sell_b()
-        
         # reset none line grid ticker
         none = self._current_none()
+        logger.info("dynamic_grid_adjust [%d] old:%.5f new:%.5f" %(none, self.gbot.grid[none].ticker, new_ticker))
+        
         self.gbot.grid[none].ticker = new_ticker
         
         # reset grid tickers below none line

@@ -61,12 +61,13 @@ def lambda_handler(event, context):
         
         corders =[]
 
-        # Regardless of state, we'll check for closed orders only if there are open orders for this gbot
+        # Regardless of gbot.state, we'll check for closed orders only if there are open orders for this gbot
         if x.open_orders:
             #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
             corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
             logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
         
+        #1. TODO: if an order comes in, and matches, we should check the dynamic_grid flag and change all grid types +/- 1 the NONE grid
         x.closed_adjust(x.ordersmatch(corders), '*')
         
         timeframe = '1m'
@@ -99,6 +100,7 @@ def lambda_handler(event, context):
         logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
         
+        #2. TODO: Refactor this to cancel orders that are type='limit' as well when dynamic_grid=True, if there are any
         if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*'):
             x.save()
             #State has either changed from active, or was already not active
@@ -116,7 +118,8 @@ def lambda_handler(event, context):
                     gridstep.ex_orderid = None
             #Need to save again
             x.save()
-                    
+            
+
             #additional step for stop_loss and profit_protect to also sell off all held base. take_profit generally
             #shouldn't get triggered unless we are above the top of the grid, but doesn't hurt to attempt to sell if we somehow have some
             if x.gbot.state == 'stop_loss' or x.gbot.state == 'take_profit' or x.gbot.state == 'profit_protect':
@@ -136,15 +139,19 @@ def lambda_handler(event, context):
         # Setup each Buy and Sell Limit, if we are still active
         if x.gbot.state == 'active':
             x.save()
+            # 3. TODO: check if we should mark a new grid as type=limit, because we both crossed it and our indicators says
+            # so. Changing it from trigger to limit will get it setup as an order.
+            
             # This can be mostly pushed into gbotrunner
+            #TODO: We need to check for gridstep.type as well, and only trigger if 'limit'
             for gridstep in x.gbot.grid:
-                if (gridstep.mode == 'buy' and gridstep.ex_orderid == None):
+                if (gridstep.mode == 'buy' and gridstep.type == 'limit' and gridstep.ex_orderid == None):
                     logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
                     logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']
                     x.save()
-                elif (gridstep.mode == 'sell'and gridstep.ex_orderid == None):
+                elif (gridstep.mode == 'sell'and gridstep.type == 'limit' and gridstep.ex_orderid == None):
                     logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_base_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_base_quantity, gridstep.ticker)
                     logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))

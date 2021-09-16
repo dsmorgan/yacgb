@@ -37,6 +37,7 @@ def setup_gbot1(request):
             'take_profit_percent_max': None, 
             'init_market_order': False, 
             'profit_protect_percent': None,
+            'dynamic_grid': False,            
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -75,6 +76,7 @@ def setup_gbot2(request):
             'take_profit_percent_max': None, 
             'init_market_order': False, 
             'profit_protect_percent': None,
+            'dynamic_grid': False,
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -112,6 +114,7 @@ def setup_gbot3(request):
             'take_profit_percent_max': None, 
             'init_market_order': False, 
             'profit_protect_percent': 0.25,
+            'dynamic_grid': False,            
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)

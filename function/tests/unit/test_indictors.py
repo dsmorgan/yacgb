@@ -72,4 +72,13 @@ def test_Indicators_1m(setup_Indicators):
     assert zz.macd == -5.319450284596769
     assert zz.macds == -0.12164047515190028
     assert zz.macdh == -5.197809809444869
-    
+
+def test_Indicators_1m_indicator(setup_Indicators):
+    i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')
+    print (i)
+    ii = Indicators(i.candles_array)
+    print (ii)
+    assert ii.rsi == 24.273064565786257
+    assert ii.buy_indicator == False
+    assert ii.sell_indicator == True
+       

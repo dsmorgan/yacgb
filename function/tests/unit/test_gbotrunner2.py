@@ -37,6 +37,7 @@ def setup_gbot4(request):
             'take_profit_percent_max': None, 
             'init_market_order': False, 
             'profit_protect_percent': 0.25,
+            'dynamic_grid': True,
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -96,9 +97,9 @@ def test_grid4_backtest(setup_gbot4):
     assert setup_gbot4.gbot.at_low_ticker == 180
     assert setup_gbot4.gbot.at_high_ticker == 220.1
     assert setup_gbot4.gbot.last_ticker == 219.25
-    #assert round(setup_gbot4.gbot.profit, 2) == 39.01
-    ##assert round(setup_gbot4.gbot.profit, 2) == 25.78
-    assert round(setup_gbot4.gbot.profit, 2) == 32.60
+    #before dynamic_grid
+    #assert round(setup_gbot4.gbot.profit, 2) == 32.60
+    assert round(setup_gbot4.gbot.profit, 2) == 32.93
     assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
     assert round(setup_gbot4.gbot.total_fees, 2) == 0.64
     
@@ -158,6 +159,7 @@ def setup_gbot5(request):
             'take_profit_percent_max': None, 
             'init_market_order': False, 
             'profit_protect_percent': 0.25,
+            'dynamic_grid': False,
             'start_ticker': request.param}
     g = GbotRunner(config=config_gbot, type='pytest')
     print ("New gbot:", g.gbot.gbotid)
@@ -350,7 +352,6 @@ def test_grid5_closed_adjust_ordersmatch_binanceus(setup_gbot5):
     assert round(setup_gbot5.gbot.cost_basis, 2) == 262.30
     assert round(setup_gbot5.base_cost(), 2) == 150
     
-    
 @local_dynamo_avail   
 def test_grid5_open_orders(setup_gbot5):
     o = 'bogus_97289161'
@@ -362,9 +363,155 @@ def test_grid5_open_orders(setup_gbot5):
     setup_gbot5.totals()
     assert setup_gbot5.open_orders == True
     
-    
+@local_dynamo_avail   
+def test_grid5_dynamic_set_triggers_static(setup_gbot5):
+    setup_gbot5.dynamic_set_triggers()
+    for g in setup_gbot5.gbot.grid:
+        assert g.type == 'limit'
 
+@pytest.fixture(params=[150])    
+def setup_gbot6(request):
+    config_gbot= {'exchange': 'bogus', 
+            'market_symbol': 'ABC/USD', 
+            'grid_spacing': 0.07, 
+            'total_quote': 1000, 
+            'max_ticker': 200, 
+            'min_ticker': 100, 
+            'reserve': 0, 
+            'live_balance': False, 
+            'start_base': 4, 
+            'start_quote': 600, 
+            'makerfee': 0, 
+            'takerfee': 0, 
+            'feecurrency': 'USD', 
+            'backtest_start': '20210526 19:00', 
+            'backtest_end': '20210528 01:00', 
+            'backtest_timeframe': '1h', 
+            'max_percent_start': None, 
+            'min_percent_start': None, 
+            'stop_loss': 100, 
+            'stop_loss_precent_min': None, 
+            'take_profit': 300, 
+            'take_profit_percent_max': None, 
+            'init_market_order': False, 
+            'profit_protect_percent': 0.25,
+            'dynamic_grid': True,
+            'start_ticker': request.param}
+    g = GbotRunner(config=config_gbot, type='pytest')
+    print ("New gbot:", g.gbot.gbotid)
+    yield g
+    print ("Delete any Orders records:", g.gbot.gbotid)
+    for o in Orders.scan(Orders.gbotid == g.gbot.gbotid):
+        print(o.ex_orderid)
+    print ("Delete gbot:", g.gbot.gbotid)
+    g.gbot.delete()   
     
-   
+@local_dynamo_avail   
+def test_grid6_dynamic_set_triggers_dynamic(setup_gbot6):
+    setup_gbot6.dynamic_set_triggers()
+    trigger = 0
+    limit = 0
+    n = 0
+    for g in setup_gbot6.gbot.grid:
+        if g.type == 'trigger':
+            trigger+=1
+        elif g.type == 'limit':
+            limit+=1
+        else:
+            n+=1
+    assert trigger == 2
+    assert limit == 0
+    assert n == 9
     
- 
+@local_dynamo_avail   
+def test_grid6_dynamic_check_triggers_dynamic(setup_gbot6):
+    class Ind:
+        def __init__(self, b=False, s=False):
+            self.buy_indicator=b
+            self.sell_indicator=s
+    
+    setup_gbot6.dynamic_set_triggers()
+
+    print("Grid...", setup_gbot6.gbot.gbotid)
+    for g in setup_gbot6.gbot.grid:
+        print ("%2d %0.3f %4s %s buy (b/q) %0.5f/%0.3f sell (b/q) %0.5f/%0.3f counts (b/s) %d/%d %s" % (g.step, g.ticker, g.mode, g.type, g.buy_base_quantity, g.buy_quote_quantity,
+                g.sell_base_quantity, g.sell_quote_quantity, g.buy_count, g.sell_count, g.ex_orderid))    
+    
+    # buy should happen
+    setup_gbot6.dynamic_set_triggers()
+    i = Ind(True, True)
+    setup_gbot6.dynamic_check_triggers(tick=110, indicator=i)
+    
+    trigger = 0
+    limit = 0
+    n = 0
+    for g in setup_gbot6.gbot.grid:
+        if g.type == 'trigger':
+            trigger+=1
+        elif g.type == 'limit':
+            limit+=1
+        else:
+            n+=1
+    assert trigger == 1
+    assert limit == 1
+    assert n == 9
+    assert setup_gbot6.gbot.grid[5].type == 'limit'
+    
+    # buy should NOT happen (delay)
+    setup_gbot6.dynamic_set_triggers()
+    i = Ind(False, False)
+    setup_gbot6.dynamic_check_triggers(tick=110, indicator=i)
+    
+    trigger = 0
+    limit = 0
+    n = 0
+    for g in setup_gbot6.gbot.grid:
+        if g.type == 'trigger':
+            trigger+=1
+        elif g.type == 'limit':
+            limit+=1
+        else:
+            n+=1
+    assert trigger == 2
+    assert limit == 0
+    assert n == 9
+    
+    
+    # sell should happen
+    setup_gbot6.dynamic_set_triggers()
+    i = Ind(True, True)
+    setup_gbot6.dynamic_check_triggers(tick=201, indicator=i)
+    
+    trigger = 0
+    limit = 0
+    n = 0
+    for g in setup_gbot6.gbot.grid:
+        if g.type == 'trigger':
+            trigger+=1
+        elif g.type == 'limit':
+            limit+=1
+        else:
+            n+=1
+    assert trigger == 1
+    assert limit == 1
+    assert n == 9
+    assert setup_gbot6.gbot.grid[7].type == 'limit'
+    
+    #sell should NOT happen (delay)
+    setup_gbot6.dynamic_set_triggers()
+    i = Ind(False, False)
+    setup_gbot6.dynamic_check_triggers(tick=201, indicator=i)
+    
+    trigger = 0
+    limit = 0
+    n = 0
+    for g in setup_gbot6.gbot.grid:
+        if g.type == 'trigger':
+            trigger+=1
+        elif g.type == 'limit':
+            limit+=1
+        else:
+            n+=1
+    assert trigger == 2
+    assert limit == 0
+    assert n == 9
