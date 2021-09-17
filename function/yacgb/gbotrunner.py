@@ -226,7 +226,8 @@ class GbotRunner:
                 if c.step == g.step:
                     if g.mode == 'buy':
                         #logger.info("[%s] Bought %.8f @ %.5f Total: %.2f" % (timestamp, g.buy_base_quantity, g.ticker, g.ticker*g.buy_base_quantity))
-                        logger.info("[%s] Bought %.8f @ %.5f Total: %.2f (grid ticker: %.5f)" % (timestamp, c.amount, c.price, c.cost, g.ticker))
+                        # use c.average instead of c.price, since that refelects the actual buy/sell price
+                        logger.info("[%s] Bought %.8f @ %.5f Total: %.2f (grid ticker: %.5f)" % (timestamp, c.amount, c.average, c.cost, g.ticker))
                         #fee = g.ticker*g.buy_base_quantity*self.gbot.config.makerfee
                         self.gbot.total_fees += c.fee_cost
                         self.gbot.profit -= c.fee_cost
@@ -240,7 +241,8 @@ class GbotRunner:
                         g.mode = "NONE"
                     if g.mode == 'sell':
                         #logger.info("[%s] Sold %.8f @ %.5f Total: %.2f" % (timestamp, g.sell_base_quantity, g.ticker, g.sell_quote_quantity))
-                        logger.info("[%s] Sold %.8f @ %.5f Total: %.2f (grid ticker: %.5f)" % (timestamp, c.amount, c.price, c.cost, g.ticker))
+                        # use c.average instead of c.price, since that refelects the actual buy/sell price
+                        logger.info("[%s] Sold %.8f @ %.5f Total: %.2f (grid ticker: %.5f)" % (timestamp, c.amount, c.average, c.cost, g.ticker))
                         #fee = g.sell_quote_quantity*self.gbot.config.makerfee
                         self.gbot.total_fees += c.fee_cost
                         #take = g.sell_quote_quantity - (g.sell_base_quantity/total_b * self.gbot.cost_basis)
@@ -275,7 +277,8 @@ class GbotRunner:
                     g.mode = "NONE"
         
         if len(orderscap.closed_list) > 0:
-            self.dynamic_grid_adjust(orderscap.closed_list[0].price)
+            # usage average instead of price, since that reflects actual value. Assuming just 1 order possible for now
+            self.dynamic_grid_adjust(orderscap.closed_list[0].average)
         
         
     def grids(self):
