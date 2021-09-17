@@ -128,15 +128,17 @@ class GbotRunner:
     def stepsmatch(self, steps):
         #generate a dictionary that emulates what a closed order looks like (minimally populated), with a key of the grid step
         odict={}
-        for step, price_ts in steps.items():
-            price = price_ts[0]
-            ts = price_ts[1]
+        for step, average_ts in steps.items():
+            average = average_ts[0]
+            ts = average_ts[1]
             order={}
             order['side'] = self.gbot.grid[step].mode
             order['type'] = self.gbot.grid[step].type
             # we attach the price that is passed to us here, instead of what ticker is
             order['timestamp'] = ts
-            order['price'] = price
+            #average represents the actual order price. price represents what the (original) grid price is
+            order['average'] = average
+            order['price'] = self.gbot.grid[step].ticker
             order['status'] = 'closed'
             order['symbol'] = self.gbot.config.market_symbol
             #TODO

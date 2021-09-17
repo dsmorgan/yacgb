@@ -18,10 +18,10 @@ class OrderParse:
         self.exchange = exchange
         self.accountid = accountid
         self.gbotid = gbotid
+        self.average = order.get('average',0)
         self.price = order.get('price', 0)
         self.amount = order.get('amount', 0)
-        self.average = order.get('average',self.price)
-        self.cost = order.get('cost', self.price*self.amount)
+        self.cost = order.get('cost', self.average*self.amount)
         self.side = order.get('side', '')
         self.type = order.get('type', '')
         self.status = order.get('status', 'canceled')
@@ -105,7 +105,7 @@ class OrdersCapture:
             #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
             # Problem is, this isn't consistent between exchanges
             if self.save:
-                logger.info("Creating Order entry: %s %s %s %.5f @ %.3f %s" %(o.ex_orderid, o.market_symbol, o.side, o.amount, o.price, o.timestamp_st))
+                logger.info("Creating Order entry: %s %s %s %.5f @ %.3f (price:%.3f) %s" %(o.ex_orderid, o.market_symbol, o.side, o.amount, o.average, o.price, o.timestamp_st))
                 ord = Orders(o.ex_orderid, 
                             exchange=o.exchange, accountid=o.accountid, gbotid=o.gbotid, market_symbol=o.market_symbol, 
                             timestamp=o.timestamp, timestamp_st=o.timestamp_st, side=o.side, type=o.type, status=o.status, 

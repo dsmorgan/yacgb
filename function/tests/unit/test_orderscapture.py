@@ -30,7 +30,9 @@ def test_orders1(setup_orders1):
         'symbol': 'XXX1/USD',
         'status':'closed',
         'type': 'limit',
-        'price': 100,
+        'side': 'sell',
+        'price': 90,
+        'average': 100,
         'amount': 4
         }
     setup_orders1.add(5, torder)
