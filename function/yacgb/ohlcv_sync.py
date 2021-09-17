@@ -114,3 +114,10 @@ class candle_limits:
                 self.limit_1d = 62
         logger.info('limit_1m:' + str(self.limit_1m) + ' limit_1h:' + str(self.limit_1h) + ' limit_1d:' + str(self.limit_1d))
 
+    def limit(self, limit):
+        if limit == '1d':
+            return self.limit_1d
+        elif limit == '1h':
+            return self.limit_1h
+        #else:
+        return self.limit_1m

@@ -61,13 +61,14 @@ def lambda_handler(event, context):
         
         corders =[]
 
-        # Regardless of gbot.state, we'll check for closed orders only if there are open orders for this gbot
+        # Regardless of gbot.state, we'll only check for closed orders only if there are open orders for this gbot
         if x.open_orders:
             #TODO use the last timestamp from the Gbot to determine the right since, need to find how to since based on closetm NOT opentm
             corders = myexch[exchange].fetchClosedOrders(market_symbol, since=x.gbot.last_order_ts)
             logger.info("fetched %d closed orders to review (since %d)" % (len(corders), x.gbot.last_order_ts))
         
-        #1. TODO: if an order comes in, and matches, we should check the dynamic_grid flag and change all grid types +/- 1 the NONE grid
+        #If an order comes in, and matches, we should check the dynamic_grid flag and change all grid types +/- 1 the NONE grid
+        x.dynamic_set_triggers()
         x.closed_adjust(x.ordersmatch(corders), '*')
         
         timeframe = '1m'
@@ -100,8 +101,8 @@ def lambda_handler(event, context):
         logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
         
-        #2. TODO: Refactor this to cancel orders that are type='limit' as well when dynamic_grid=True, if there are any
-        if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*'):
+        #Cancel all open orders, if we triggered slorp OR when dynamic_grid=True
+        if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*') or (x.gbot.config.dynamic_grid and x.open_orders):
             x.save()
             #State has either changed from active, or was already not active
             for gridstep in x.gbot.grid:
@@ -135,7 +136,8 @@ def lambda_handler(event, context):
                 x.totals()
                 x.save()
         
-        # Find all grids that are buy/sell, but don't have an order_id. Setup the new limit orders
+        # If dynamic_grid==True, find all grids that are buy/sell, but don't have an order_id. Setup the new limit order(s)
+        x.dynamic_check_triggers(lookup.close, iiiii)
         # Setup each Buy and Sell Limit, if we are still active
         if x.gbot.state == 'active':
             x.save()
@@ -160,7 +162,7 @@ def lambda_handler(event, context):
         
         #TODO: set timestamp as well, so to check since last timestamp found. Or is that even possible?
         
-        # Only print the grid if we've changed something.
+        # TODO: Only print the grid if we've changed something, need to change how we do this
         #if (len(closed_list) + len (reset_list) > 0):
         x.totals()
         ## END OF GBOT LOOP

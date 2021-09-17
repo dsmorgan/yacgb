@@ -33,15 +33,15 @@ for e in psconf.exch:
 
 
 def lambda_handler(event, context):
-    nowdt = datetime.datetime.now(timezone.utc)  
-    thisminute = nowdt.replace(second=0, microsecond=0)
     
     random.shuffle(psconf.market_list)
     logger.info("exchange:market %s" % str(psconf.market_list))
     for x in psconf.market_list:
+        nowdt = datetime.datetime.now(timezone.utc)  
+        thisminute = nowdt.replace(second=0, microsecond=0)
         exchange = x.split(':', 1)[0]
         market_symbol = x.split(':', 1)[1]
-        logger.debug("syncing %s %s" %(exchange, market_symbol))
+        logger.debug("syncing %s %s last:%s" %(exchange, market_symbol, str(nowdt)))
  
         ####
         # If this is the 1st time we've attempted to get this exchange + market_symbol, then save a table entry w/ some details
@@ -77,24 +77,13 @@ def lambda_handler(event, context):
         exchange_item.last = str(nowdt)
      
         #TODO: refactor this as a loop     
-        # Get minute timeframe OHLCV candles data, grouped per hour in a table entry
-        timeframe='1m'
-        key = exchange+'_'+market_symbol+'_'+timeframe
-        candles = myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=cl.limit_1m)
-        save_candles(exchange, market_symbol, timeframe, nowdt, candles)
+        timeframes = ['1m', '1h', '1d']
+        for timeframe in timeframes:
+            # Get x (1m, 1h, 1d) timeframe OHLCV candles data, grouped per y (hour, day, month) in a table entry
+            key = exchange+'_'+market_symbol+'_'+timeframe
+            candles = myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=cl.limit(timeframe))
+            save_candles(exchange, market_symbol, timeframe, nowdt, candles)
     
-        # Get hour timeframe OHLCV candles data, grouped per day in a table entry
-        timeframe='1h'
-        key = exchange+'_'+market_symbol+'_'+timeframe
-        candles = myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=cl.limit_1h)
-        save_candles(exchange, market_symbol, timeframe, nowdt, candles)
-    
-        # Get day timeframe OHLCV candles data, grouped per month on a table entry
-        timeframe='1d'
-        key = exchange+'_'+market_symbol+'_'+timeframe
-        candles = myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=cl.limit_1d)
-        save_candles(exchange, market_symbol, timeframe, nowdt, candles)
-        
         # This needs to happen after the OHLCV entries have all been collected, to save the last_timestamp
         exchange_item.save()
         ####

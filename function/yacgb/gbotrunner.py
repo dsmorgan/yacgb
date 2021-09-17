@@ -99,7 +99,7 @@ class GbotRunner:
                         pts.append(timestamp)
                         closed_dict[g.step] = pts
                     else:
-                        logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                        logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
                 if g.mode == 'buy' and g.ticker > highest_buy:
                     # For debug
                     highest_buy = g.ticker
@@ -116,7 +116,7 @@ class GbotRunner:
                         pts.append(timestamp)
                         closed_dict[g.step] = pts
                     else:
-                        logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                        logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
                 
             logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_dict)))  
             
@@ -480,13 +480,13 @@ class GbotRunner:
                         #toggle type from trigger to limit, so that it triggers an order
                         g.type = 'limit'
                     else:
-                       logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                       logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
                 if g.mode == 'buy' and g.type == 'trigger' and g.ticker >= tick:
                     if indicator.buy_indicator:
                         #toggle type from trigger to limit, so that it triggers an order
                         g.type = 'limit'
                     else:
-                       logger.info("step [%d] delayed trigger %s" % (g.step, indicator))
+                       logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
                     
     def dynamic_grid_adjust(self, new_ticker):
         if not self.gbot.config.dynamic_grid:
