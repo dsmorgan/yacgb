@@ -93,7 +93,7 @@ class OrdersCapture:
         if o.status == 'canceled':
             #add it to the list to reset the order
             self.reset_list.append(o)
-            logger.warning("Canceled order (%d), resetting: %s %s" % (o.step, o.market_symbol, o.ex_orderid))
+            logger.warning("[%d] Canceled order, resetting: %s %s" % (o.step, o.market_symbol, o.ex_orderid))
             #setting this grid to None will trigger it to be reset
             #don't do anything else with this step, next order
         else:
@@ -105,7 +105,8 @@ class OrdersCapture:
             #TODO the timestamp is when the order was placed, NOT when the order completed. Need to map that to the correct field
             # Problem is, this isn't consistent between exchanges
             if self.save:
-                logger.info("Creating Order entry: %s %s %s %.5f @ %.3f (price:%.3f) %s" %(o.ex_orderid, o.market_symbol, o.side, o.amount, o.average, o.price, o.timestamp_st))
+                logger.info("[%d] Creating Order entry: %s %s %s %.5f @ %.3f (price:%.3f) %s" %(o.step, o.ex_orderid, o.market_symbol, 
+                                    o.side, o.amount, o.average, o.price, o.timestamp_st))
                 ord = Orders(o.ex_orderid, 
                             exchange=o.exchange, accountid=o.accountid, gbotid=o.gbotid, market_symbol=o.market_symbol, 
                             timestamp=o.timestamp, timestamp_st=o.timestamp_st, side=o.side, type=o.type, status=o.status, 

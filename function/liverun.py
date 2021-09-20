@@ -78,8 +78,8 @@ def lambda_handler(event, context):
         last_bdt = BacktestDateTime(lookup.last)
         logger.info("%s %s %s tsdiffsec: %f difflastsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt), last_bdt.diffsec(nowbdt)))
         # check here how far behind the last candle is, and when the record was written
-        if ts_bdt.diffsec(nowbdt) < -29:
-            lookup.update(myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=10))
+        if abs(last_bdt.diffsec(nowbdt)) < 15:
+            lookup.update(myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=11))
             ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
             logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt)))
         #
@@ -133,10 +133,11 @@ def lambda_handler(event, context):
                     logger.info("Market Sell All %s (%f)" %(market_symbol, ttsell))
                     sellall = myexch[exchange].createMarketSellOrder(market_symbol, ttsell)
                     logger.info(str(sellall))
+                    #TODO: need to funnel the response of this to the Orders table (orderscapture)
                 x.totals()
                 x.save()
         
-        # If dynamic_grid==True, find all grids that are buy/sell, but don't have an order_id. Setup the new limit order(s)
+        # If dynamic_grid==True, find all grids that are buy/sell, but don't have an order_id. Setup the new limit order(s) if w should now trigger a trade
         x.dynamic_check_triggers(lookup.close, iiiii)
         # Setup each Buy and Sell Limit, if we are still active
         if x.gbot.state == 'active':
@@ -145,16 +146,16 @@ def lambda_handler(event, context):
             # so. Changing it from trigger to limit will get it setup as an order.
             
             # This can be mostly pushed into gbotrunner
-            #TODO: We need to check for gridstep.type as well, and only trigger if 'limit'
+            #We need to check for gridstep.type as well, and only trigger if 'limit'
             for gridstep in x.gbot.grid:
                 if (gridstep.mode == 'buy' and gridstep.type == 'limit' and gridstep.ex_orderid == None):
-                    logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
+                    logger.info("[%d] limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.buy_base_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitBuyOrder (market_symbol, gridstep.buy_base_quantity, gridstep.ticker)
                     logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']
                     x.save()
                 elif (gridstep.mode == 'sell'and gridstep.type == 'limit' and gridstep.ex_orderid == None):
-                    logger.info("%d limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_base_quantity, gridstep.ticker))
+                    logger.info("[%d] limit %s base quantity %f @ %f" % (gridstep.step, gridstep.mode, gridstep.sell_base_quantity, gridstep.ticker))
                     gridorder = myexch[exchange].createLimitSellOrder (market_symbol, gridstep.sell_base_quantity, gridstep.ticker)
                     logger.info("exchange %s id %s type %s side %s" % (exchange, gridorder['id'], gridorder['type'], gridorder['side']))
                     gridstep.ex_orderid=exchange + '_' + gridorder['id']

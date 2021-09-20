@@ -161,7 +161,7 @@ class GbotRunner:
             exord = self.gbot.config.exchange + '_' + o['id']
             for g in self.gbot.grid:
                 if g.ex_orderid == exord:
-                    logger.info(">%d Matched %s" %(g.step, g.ex_orderid))
+                    logger.info("[%d] Matched %s" %(g.step, g.ex_orderid))
                     odict[g.step] = o
         return (odict)
     
@@ -484,14 +484,16 @@ class GbotRunner:
                     if indicator.sell_indicator:
                         #toggle type from trigger to limit, so that it triggers an order
                         g.type = 'limit'
+                        logger.info("[%d] %.5f triggered @ tick: %.5f %s" % (g.step, g.ticker, tick, indicator))
                     else:
-                       logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
+                       logger.info("[%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
                 if g.mode == 'buy' and g.type == 'trigger' and g.ticker >= tick:
                     if indicator.buy_indicator:
                         #toggle type from trigger to limit, so that it triggers an order
                         g.type = 'limit'
+                        logger.info("[%d] %.5f triggered @ tick: %.5f %s" % (g.step, g.ticker, tick, indicator))
                     else:
-                       logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
+                       logger.info("[%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
                     
     def dynamic_grid_adjust(self, new_ticker):
         if not self.gbot.config.dynamic_grid:
