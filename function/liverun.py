@@ -76,12 +76,12 @@ def lambda_handler(event, context):
         lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -300)
         ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
         last_bdt = BacktestDateTime(lookup.last)
-        logger.info("%s %s %s tsdiffsec: %f difflastsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt), last_bdt.diffsec(nowbdt)))
+        logger.info("%s %s %s tsdiffsec: %f difflastsec: %f" %(exchange, market_symbol, lookup, nowbdt.diffsec(ts_bdt), nowbdt.diffsec(last_bdt)))
         # check here how far behind the last candle is, and when the record was written
-        if nowbdt.diffsec(last_bdt)) < 15:
+        if nowbdt.diffsec(last_bdt) > 15:
             lookup.update(myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=11))
             ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
-            logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, ts_bdt.diffsec(nowbdt)))
+            logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, nowbdt.diffsec(ts_bdt)))
         #
         i = Indicators(lookup.candles_array)
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
