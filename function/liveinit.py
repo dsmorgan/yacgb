@@ -16,7 +16,7 @@ from yacgb.gbotrunner import GbotRunner
 from yacgb.util import base_symbol, quote_symbol, event2config, configsetup
 from yacgb.ccxthelper import BalanceCalc
 
-logger = logging.getLogger()
+logger=logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info("CCXT version: %s" % ccxt.__version__)
@@ -33,6 +33,7 @@ def lambda_handler(event, context):
     
     #configure ccxt to access private account on an axchange
     myexch = eval ('ccxt.%s ()' % config['exchange'])
+    myexch.setSandboxMode(psconf.exch_sandbox[config['exchange']])
     myexch.apiKey = psconf.exch_apikey[config['exchange']]
     myexch.secret = psconf.exch_secret[config['exchange']]
     myexch.password = psconf.exch_password[config['exchange']]

@@ -6,8 +6,6 @@ import datetime
 from datetime import timezone
 import logging
 import os
-import sys
-import random
 
 from model.orders import Orders, orders_init
 #from yacgb.lookup import OrderBookLookup
@@ -20,22 +18,25 @@ from yacgb.lookup import ohlcvLookup
 from yacgb.bdt import BacktestDateTime
 from yacgb.indicators import Indicators
 
-logger = logging.getLogger()
+logger=logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info("CCXT version: %s" % ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
 #OHLCV table lookup cache
-olcache = ohlcvLookup()
+olcache=ohlcvLookup()
 
-myexch = {}
+myexch={}
 for e in psconf.exch:
     myexch[e] = eval ('ccxt.%s ()' % e)
+    myexch[e].setSandboxMode(psconf.exch_sandbox[e])
     myexch[e].apiKey = psconf.exch_apikey[e]
     myexch[e].secret = psconf.exch_secret[e]
     myexch[e].password = psconf.exch_password[e]
     myexch[e].enableRateLimit = False
+    #load_markets is required before each exchange can be used, but an expensive (time consuming) operation that can also
+    # interfere with server side rate limiting. Moving this to global reduces the frequency it needs to be called.
     myexch[e].load_markets()
 
 orders_init()
@@ -45,12 +46,12 @@ def lambda_handler(event, context):
     global myexch
     global psconf
     
-    random.shuffle(psconf.gbotids)
+    gbotids = psconf.shuffled_gbotids
     response = {}
-    response['gbotids'] = psconf.gbotids
+    response['gbotids'] = gbotids
     logger.info(response)
 
-    for gbotid in psconf.gbotids:
+    for gbotid in gbotids:
         #load Gbot, TODO: need to handle if it can't be found
         x = GbotRunner(gbotid=gbotid)
         exchange=x.gbot.exchange

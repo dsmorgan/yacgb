@@ -5,6 +5,7 @@ import os
 from base64 import b64decode
 from ssm_cache import SSMParameterGroup
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class yacgb_aws_ps:
         self.exch_apikey={}
         self.exch_secret={}
         self.exch_password={}
+        self.exch_sandbox={}
         self.market_list=[]
         self.gbotids=[]
         
@@ -59,6 +61,7 @@ class yacgb_aws_ps:
             self.exch_apikey[ex] = os.environ.get('API_KEY')
             self.exch_secret[ex] = os.environ.get('SECRET')
             self.exch_password[ex] = os.environ.get('PASSWORD')
+            self.exch_sandbox[ex] = better_bool(os.environ.get('SANDBOX', "False"))
             self.__build_market_list()
             gbotid = os.environ.get('GBOTID')
             if gbotid != None:
@@ -70,7 +73,14 @@ class yacgb_aws_ps:
         for e in self.exch.keys():
             for m in self.exch[e]:
                 self.market_list.append(e+':'+m)
-        
+    
+    @property
+    def shuffled_gbotids(self):
+        if os.environ.get('GBOTID') != None:
+            return self.gbotids
+        self.gbotids = self.configgrp.parameter('/gbotids').value
+        random.shuffle(self.gbotids)
+        return(self.gbotids)
         
     def collect(self):
         self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env)
@@ -88,6 +98,7 @@ class yacgb_aws_ps:
                 self.exch_secret[exch_name] = 'not_set'
                 #Most exchanges don't use password (or passphrase), but at least one (coinbasepro) requires it AND apikey + secret
                 self.exch_password[exch_name] = None
+                self.exch_sandbox[exch_name] = False
                 params = self.configgrp.parameters('/exchanges/' + exch_name, recursive=False)
                 for p in params:
                     pname = p.name.rsplit('/',1)[1]
@@ -99,6 +110,8 @@ class yacgb_aws_ps:
                         self.exch_secret[exch_name] = p.value
                     if pname == 'password':
                         self.exch_password[exch_name] = p.value
+                    if pname == 'sandbox':
+                        self.exch_sandbox[exch_name] = better_bool(p.value)
        
         self.__build_market_list()
 

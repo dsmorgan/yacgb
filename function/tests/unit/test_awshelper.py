@@ -38,6 +38,7 @@ def test_yacgb_aws_ps_env():
     os.environ['SECRET'] = 'test_secret'
     #os.environ['PASSWORD'] = 'test_password'
     os.environ['GBOTID'] = 'test_gbotid'
+    os.environ['SANDBOX'] = 'true'
     
     testconfig = yacgb_aws_ps()
     
@@ -47,6 +48,8 @@ def test_yacgb_aws_ps_env():
     assert testconfig.exch_apikey == {'binanceus': 'test_api_key_value'}
     assert testconfig.exch_secret == {'binanceus': 'test_secret'}
     assert testconfig.exch_password == {'binanceus': None }
+    assert testconfig.exch_sandbox == {'binanceus': True }
     assert testconfig.market_list == ['binanceus:XLM/USD']
     assert testconfig.gbotids == ['test_gbotid']
+    assert testconfig.shuffled_gbotids == ['test_gbotid']
    

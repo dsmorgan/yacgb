@@ -13,7 +13,7 @@ from yacgb.ohlcv_sync import save_candles, candle_limits
 from model.market import Market, market_init
 from model.ohlcv import OHLCV, ohlcv_init
 
-logger = logging.getLogger()
+logger=logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info("CCXT version: %s" % ccxt.__version__)
@@ -25,12 +25,12 @@ market_init()
 ohlcv_init()
 
 # load the configured exchange from ccxt, load_markets is needed to initialize
-myexch = {}
+myexch={}
 for e in psconf.exch:
     myexch[e] = eval ('ccxt.%s ()' % e)
+    myexch[e].setSandboxMode(psconf.exch_sandbox[e])
     myexch[e].enableRateLimit = False
     myexch[e].load_markets()
-
 
 def lambda_handler(event, context):
     

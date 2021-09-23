@@ -17,7 +17,7 @@ from yacgb.util import base_symbol, quote_symbol, event2config, configsetup
 from yacgb.ccxthelper import BalanceCalc
 from yacgb.indicators import Indicators
 
-logger = logging.getLogger()
+logger=logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info("CCXT version: %s" % ccxt.__version__)
@@ -46,12 +46,13 @@ def lambda_handler(event, context):
             break
         start.addtf(timeframe)
     #Some configuration is dependant upon the initial value when the backtest starts, pass that and also some validation
-    config = configsetup(config, lookup.open)
+    config=configsetup(config, lookup.open)
 
     # test for fetchBalance
     if config['live_balance']:
         #configure ccxt to access private account on an axchange
         myexch = eval ('ccxt.%s ()' % config['exchange'])
+        myexch.setSandboxMode(psconf.exch_sandbox[config['exchange']])
         myexch.apiKey = psconf.exch_apikey[config['exchange']]
         myexch.secret = psconf.exch_secret[config['exchange']]
         myexch.password = psconf.exch_password[config['exchange']]

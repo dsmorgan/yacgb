@@ -28,7 +28,7 @@ class cacheItem:
         
 
 class ohlcvLookup:
-    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=32, ocache_maxsize=128):
+    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=32, ocache_maxsize=1024):
         self.mcache_expire_seconds = mcache_expire_seconds
         self.ocache_expire_seconds = ocache_expire_seconds
         self.mcache_maxsize = mcache_maxsize
@@ -218,7 +218,7 @@ class Candle:
     def __str__(self):
         dt = datetime.datetime.fromtimestamp(int(self.timestamp/1000), tz=timezone.utc)
         dt_st = dt.strftime('%Y%m%d %H:%M')
-        return ("<Candle %s t-%s o-%f h-%f l-%f c-%f v-%f ?-%s>" % (dt_st, self.timeframe, self.open, self.high, self.low, self.close, self.volume, self.valid))
+        return ("<Candle %s t:%s o:%f h:%f l:%f c:%f v:%f ?:%s>" % (dt_st, self.timeframe, self.open, self.high, self.low, self.close, self.volume, self.valid))
         
         
 class Candles:
@@ -459,8 +459,8 @@ class Candles:
         dts_st = dts.strftime('%Y%m%d %H:%M')
         dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
         dte_st = dte.strftime('%Y%m%d %H:%M')
-        return ("<Candles s-%s e-%s t-%s o-%f h-%f l-%f c-%f v-%f pc:%f pa:%f ?-%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
-                        self.low, self.close, self.volume, self.change, self.amplitude, self.valid))
+        return ("<Candles s:%s e:%s t:%s o:%f h:%f l:%f c:%f wac:%f v:%f av:%f pc:%f pa:%f ?:%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
+                        self.low, self.close, self.wavg_close, self.volume, self.avg_volume(), self.change, self.amplitude, self.valid))
                         
 def validate_tf(current_tf, new_tf=None):
     validtfs = {'m': [1,2,3,4,5,6,10,12,15,20,30,60],

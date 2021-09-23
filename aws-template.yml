@@ -30,7 +30,7 @@ Resources:
       CodeUri: function/.
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
       Timeout: 30
-      MemorySize: 256
+      MemorySize: 4096
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
