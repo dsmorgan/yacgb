@@ -107,7 +107,7 @@ def configsetup(c, start_ticker):
     if c['min_percent_start']:
         c['min_ticker'] = start_ticker * (1-c['min_percent_start'])
     if not c['min_ticker'] or not c['max_ticker']:
-        logger.critical("min_ticker (%s) and/or max_ticker (%s) not valid" %(str(c['min_ticker']), str(c['max_ticker'])))
+        logger.critical("min_ticker (%s) and/or max_ticker (%s) not valid [start_ticker: %s]" %(str(c['min_ticker']), str(c['max_ticker']), str(start_ticker)))
         exit()
     if c['min_ticker'] > c['max_ticker']:
         logger.critical("min_ticker (%f) is greater then max_ticker (%f)" %(c['min_ticker'], c['max_ticker']))

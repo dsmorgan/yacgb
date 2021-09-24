@@ -62,6 +62,8 @@ class yacgb_aws_ps:
             self.exch_secret[ex] = os.environ.get('SECRET')
             self.exch_password[ex] = os.environ.get('PASSWORD')
             self.exch_sandbox[ex] = better_bool(os.environ.get('SANDBOX', "False"))
+            if self.exch_sandbox[ex] == True:
+                logger.warning("Using Sandbox for exchange: %s" % ex)
             self.__build_market_list()
             gbotid = os.environ.get('GBOTID')
             if gbotid != None:
@@ -112,6 +114,8 @@ class yacgb_aws_ps:
                         self.exch_password[exch_name] = p.value
                     if pname == 'sandbox':
                         self.exch_sandbox[exch_name] = better_bool(p.value)
+                if self.exch_sandbox[exch_name] == True:      
+                    logger.warning("Using Sandbox for exchange: %s" % exch_name)
        
         self.__build_market_list()
 

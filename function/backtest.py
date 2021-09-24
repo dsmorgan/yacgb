@@ -37,7 +37,7 @@ def lambda_handler(event, context):
     start = BacktestDateTime(config['backtest_start'])
     end = BacktestDateTime(config['backtest_end'])
     timeframe = config['backtest_timeframe']
-    #lookup = OrderBookLookup(config['exchange'], config['market_symbol'])
+    lookup = olcache.get_candle(config['exchange'], config['market_symbol'], timeframe, start.dtstf(timeframe))
     #If this returns zero, then might need to advance to see if we can find a valid OHLCV table entry
     while end.laterthan(start):
         #lookup.getcandle(tgit imeframe=timeframe, stime=start.dtstf(timeframe))
