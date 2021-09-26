@@ -20,15 +20,12 @@ def setup_env():
     #  However, these values need to exist on the sandbox api service    
     test_exchange = 'binanceus'
     test_market = 'ETH/BUSD'
-    
+    #not used here, but changing from default anyway
     os.environ['AWS_PS_GROUP'] = 'test'
+    os.environ['SANDBOX'] = 'true'
     os.environ['EXCHANGE'] = test_exchange
     os.environ['MARKET_SYMBOL'] = test_market
-    #os.environ['API_KEY'] = 'test_api_key_value'
-    #os.environ['SECRET'] = 'test_secret'
-    #os.environ['PASSWORD'] = 'test_password'
-    #os.environ['GBOTID'] = 'test_gbotid'
-    os.environ['SANDBOX'] = 'true'
+
     yield [test_exchange, test_market]
     
     print ("Delete market:",test_exchange, test_market)
