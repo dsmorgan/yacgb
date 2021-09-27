@@ -27,7 +27,7 @@ Resources:
     Properties:
       Handler: backtest.lambda_handler
       Runtime: python3.8
-      CodeUri: function/.
+      CodeUri: function/
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
       Timeout: 30
       MemorySize: 4096
@@ -45,7 +45,7 @@ Resources:
     Properties:
       Handler: liveinit.lambda_handler
       Runtime: python3.8
-      CodeUri: function/.
+      CodeUri: function/
       Description: Setup a new gbot running against a live account on an exchange
       Timeout: 30
       MemorySize: 256
@@ -63,7 +63,7 @@ Resources:
     Properties:
       Handler: liverun.lambda_handler
       Runtime: python3.8
-      CodeUri: function/.
+      CodeUri: function/
       Description: Run a gbot periodically to execute new trades based on its configuration
       Timeout: 20
       MemorySize: 256
@@ -84,3 +84,5 @@ Resources:
       ContentUri: yacgb-layer
       CompatibleRuntimes:
         - python3.8
+    Metadata:
+      BuildMethod: python3.8

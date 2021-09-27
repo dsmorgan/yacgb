@@ -13,6 +13,7 @@ class Orders(Model):
     class Meta:
         table_name = 'Orders'
         host = os.environ.get('DYNAMODB_HOST')
+        region = os.environ.get('AWS_REGION')
     
     ex_orderid = UnicodeAttribute(hash_key=True)
     #exchange + '_' + ordereid

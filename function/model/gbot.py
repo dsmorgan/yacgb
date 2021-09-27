@@ -15,6 +15,7 @@ class Gbot(Model):
     class Meta:
         table_name = 'Gbot'
         host = os.environ.get('DYNAMODB_HOST')
+        region = os.environ.get('AWS_REGION')
     
     gbotid = UnicodeAttribute(hash_key=True)
     exchange = UnicodeAttribute()

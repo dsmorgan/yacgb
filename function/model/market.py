@@ -13,6 +13,7 @@ class Market(Model):
     class Meta:
         table_name = 'Market'
         host = os.environ.get('DYNAMODB_HOST')
+        region = os.environ.get('AWS_REGION')
 
     exchange = UnicodeAttribute(hash_key=True)
     market = UnicodeAttribute(range_key=True)

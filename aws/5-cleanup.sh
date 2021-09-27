@@ -41,5 +41,7 @@ for FUNCTION in "${FUNCTIONS[@]}"; do
     done
 done
 
-rm -f out.yml out.json function/*.pyc
-rm -rf package function/__pycache__
+rm -f out.yml out.json 
+cd ../
+rm -f function/*.pyc
+rm -rf package function/__pycache__ function/model/__pycache__ function/yacgb/__pycache__ function/tests/unit/__pycache__ function/tests/integration/__pycache__
