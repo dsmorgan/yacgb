@@ -9,19 +9,30 @@ Resources:
     Properties:
       Handler: synctickers.lambda_handler
       Runtime: python3.8
-      CodeUri: function/.
+      CodeUri: function/
       Description: Call a crypto exchange, pull OHLCV data and put in dynamodb
       Timeout: 20
       MemorySize: 256
+      Environment:
+        Variables:
+          TABLE_MARKET: !Ref Market
+          TABLE_OHLCV: !Ref OHLCV
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSLambda_ReadOnlyAccess
-        - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Market
+            TableName: !Ref OHLCV
       Tracing: Active
       Layers:
         - !Ref libs
+      Events:
+        EveryMinute:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
   backtest:
     Type: AWS::Serverless::Function
     Properties:
@@ -29,7 +40,7 @@ Resources:
       Runtime: python3.8
       CodeUri: function/
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
-      Timeout: 30
+      Timeout: 180
       MemorySize: 4096
       # Function's execution role
       Policies:
@@ -76,6 +87,11 @@ Resources:
       Tracing: Active
       Layers:
         - !Ref libs
+      Events:
+        EveryMinute:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
   libs:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -86,3 +102,15 @@ Resources:
         - python3.8
     Metadata:
       BuildMethod: python3.8
+  Market:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+  OHLCV:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10

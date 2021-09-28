@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Market(Model):
     class Meta:
-        table_name = 'Market'
+        table_name = os.environ.get("TABLE_MARKET", "Market")
         host = os.environ.get('DYNAMODB_HOST')
         region = os.environ.get('AWS_REGION')
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class Gbot(Model):
     class Meta:
-        table_name = 'Gbot'
+        table_name =  os.environ.get("TABLE_GBOT", "Gbot")
         host = os.environ.get('DYNAMODB_HOST')
         region = os.environ.get('AWS_REGION')
     
