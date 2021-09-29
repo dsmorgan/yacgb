@@ -19,9 +19,8 @@ Resources:
           TABLE_OHLCV: !Ref OHLCV
       # Function's execution role
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSLambda_ReadOnlyAccess
-        - AmazonSSMReadOnlyAccess
+        - SSMParameterReadPolicy:
+            ParameterName: yacgb/*
         - DynamoDBCrudPolicy:
             TableName: !Ref Market
         - DynamoDBCrudPolicy:
@@ -51,9 +50,8 @@ Resources:
           TABLE_ORDERS: !Ref Orders
       # Function's execution role
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSLambda_ReadOnlyAccess
-        - AmazonSSMReadOnlyAccess
+        - SSMParameterReadPolicy:
+            ParameterName: yacgb/*
         - DynamoDBCrudPolicy:
             TableName: !Ref Gbot
         - DynamoDBCrudPolicy:
@@ -82,9 +80,8 @@ Resources:
           TABLE_ORDERS: !Ref Orders
       # Function's execution role
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSLambda_ReadOnlyAccess
-        - AmazonSSMReadOnlyAccess
+        - SSMParameterReadPolicy:
+            ParameterName: yacgb/*
         - DynamoDBCrudPolicy:
             TableName: !Ref Gbot
         - DynamoDBCrudPolicy:
@@ -113,9 +110,8 @@ Resources:
           TABLE_ORDERS: !Ref Orders
       # Function's execution role
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSLambda_ReadOnlyAccess
-        - AmazonSSMReadOnlyAccess
+        - SSMParameterReadPolicy:
+            ParameterName: yacgb/*
         - DynamoDBCrudPolicy:
             TableName: !Ref Gbot
         - DynamoDBCrudPolicy:
@@ -174,13 +170,13 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 10
         WriteCapacityUnits: 10
-  GBot:
+  Gbot:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
         - AttributeName: "gbotid"
           AttributeType: "S"
-       KeySchema:
+      KeySchema:
         - AttributeName: "gbotid"
           KeyType: "HASH"
       ProvisionedThroughput:
@@ -192,7 +188,7 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "ex_orderid"
           AttributeType: "S"
-       KeySchema:
+      KeySchema:
         - AttributeName: "ex_orderid"
           KeyType: "HASH"
       ProvisionedThroughput:
