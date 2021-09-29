@@ -24,6 +24,7 @@ Resources:
         - AmazonSSMReadOnlyAccess
         - DynamoDBCrudPolicy:
             TableName: !Ref Market
+        - DynamoDBCrudPolicy:
             TableName: !Ref OHLCV
       Tracing: Active
       Layers:
@@ -42,12 +43,25 @@ Resources:
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
       Timeout: 180
       MemorySize: 4096
+      Environment:
+        Variables:
+          TABLE_MARKET: !Ref Market
+          TABLE_OHLCV: !Ref OHLCV
+          TABLE_GBOT: !Ref Gbot
+          TABLE_ORDERS: !Ref Orders
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSLambda_ReadOnlyAccess
-        - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Gbot
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Orders
+        - DynamoDBReadPolicy:
+            TableName: !Ref Market
+        - DynamoDBReadPolicy:
+            TableName: !Ref OHLCV
       Tracing: Active
       Layers:
         - !Ref libs
@@ -60,12 +74,25 @@ Resources:
       Description: Setup a new gbot running against a live account on an exchange
       Timeout: 30
       MemorySize: 256
+      Environment:
+        Variables:
+          TABLE_MARKET: !Ref Market
+          TABLE_OHLCV: !Ref OHLCV
+          TABLE_GBOT: !Ref Gbot
+          TABLE_ORDERS: !Ref Orders
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSLambda_ReadOnlyAccess
-        - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Gbot
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Orders
+        - DynamoDBReadPolicy:
+            TableName: !Ref Market
+        - DynamoDBReadPolicy:
+            TableName: !Ref OHLCV
       Tracing: Active
       Layers:
         - !Ref libs
@@ -78,12 +105,25 @@ Resources:
       Description: Run a gbot periodically to execute new trades based on its configuration
       Timeout: 20
       MemorySize: 256
+      Environment:
+        Variables:
+          TABLE_MARKET: !Ref Market
+          TABLE_OHLCV: !Ref OHLCV
+          TABLE_GBOT: !Ref Gbot
+          TABLE_ORDERS: !Ref Orders
       # Function's execution role
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSLambda_ReadOnlyAccess
-        - AmazonDynamoDBFullAccess
         - AmazonSSMReadOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Gbot
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Orders
+        - DynamoDBReadPolicy:
+            TableName: !Ref Market
+        - DynamoDBReadPolicy:
+            TableName: !Ref OHLCV
       Tracing: Active
       Layers:
         - !Ref libs
@@ -105,12 +145,56 @@ Resources:
   Market:
     Type: AWS::DynamoDB::Table
     Properties:
+      AttributeDefinitions:
+        - AttributeName: "exchange"
+          AttributeType: "S"
+        - AttributeName: "market"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "exchange"
+          KeyType: "HASH"
+        - AttributeName: "market"
+          KeyType: "RANGE"
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2
   OHLCV:
     Type: AWS::DynamoDB::Table
     Properties:
+      AttributeDefinitions:
+        - AttributeName: "ex_market_tf"
+          AttributeType: "S"
+        - AttributeName: "timestamp"
+          AttributeType: "N"
+      KeySchema:
+        - AttributeName: "ex_market_tf"
+          KeyType: "HASH"
+        - AttributeName: "timestamp"
+          KeyType: "RANGE"
       ProvisionedThroughput:
         ReadCapacityUnits: 10
         WriteCapacityUnits: 10
+  GBot:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "gbotid"
+          AttributeType: "S"
+       KeySchema:
+        - AttributeName: "gbotid"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  Orders:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "ex_orderid"
+          AttributeType: "S"
+       KeySchema:
+        - AttributeName: "ex_orderid"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 3
+        WriteCapacityUnits: 3

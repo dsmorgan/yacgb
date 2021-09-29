@@ -6,6 +6,7 @@ import datetime
 from datetime import timezone
 import os
 import logging
+import random
 
 from yacgb.awshelper import yacgb_aws_ps
 from yacgb.ohlcv_sync import save_candles, candle_limits
