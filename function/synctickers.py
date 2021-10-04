@@ -38,10 +38,10 @@ def lambda_handler(event, context):
     
     psconf.collect()
     for d in psconf.del_exch:
-        logger.info("config change: deleting exchange %s config")
+        logger.info("config change: deleting exchange %s config" % d)
         del(myexch[d])
     for a in psconf.new_exch:
-        logger.info("config change: new exchange %s config")
+        logger.info("config change: new exchange %s config" % a)
         myexch[a] = eval ('ccxt.%s ()' % a)
         myexch[a].setSandboxMode(psconf.exch_sandbox[a])
         myexch[a].enableRateLimit = False

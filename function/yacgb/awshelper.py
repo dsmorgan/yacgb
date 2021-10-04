@@ -109,8 +109,8 @@ class yacgb_aws_ps:
             
             exchanges= self.configgrp.parameters('/exchanges', recursive=False)
             for e in exchanges:
+                exch_name = e.name.rsplit('/',1)[1]
                 if better_bool(e.value):
-                    exch_name = e.name.rsplit('/',1)[1]
                     self.exch[exch_name] = []
                     self.exch_apikey[exch_name] = 'not_set'
                     self.exch_secret[exch_name] = 'not_set'
@@ -140,6 +140,9 @@ class yacgb_aws_ps:
                             self.exch_config[exch_name] = config
                     else:
                        self.exch_config[exch_name] = config 
+                else:
+                    #delete the exchange, if it is set to False
+                    if self.exch.get(exch_name) != None: del(self.exch[exch_name])
             if self.init:
                 now_exch = set([*self.exch])
                 self.new_exch=list(now_exch - prev_exch)
