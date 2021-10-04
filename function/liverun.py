@@ -46,6 +46,20 @@ def lambda_handler(event, context):
     global myexch
     global psconf
     
+    psconf.collect()
+    for d in psconf.del_exch:
+        logger.info("config change: deleting exchange %s config")
+        del(myexch[d])
+    for a in psconf.new_exch:
+        logger.info("config change: new exchange %s config")
+        myexch[a] = eval ('ccxt.%s ()' % a)
+        myexch[a].setSandboxMode(psconf.exch_sandbox[a])
+        myexch[a].apiKey = psconf.exch_apikey[a]
+        myexch[a].secret = psconf.exch_secret[a]
+        myexch[a].password = psconf.exch_password[a]
+        myexch[a].enableRateLimit = False
+        myexch[a].load_markets()
+    
     gbotids = psconf.shuffled_gbotids
     response = {}
     response['gbotids'] = gbotids

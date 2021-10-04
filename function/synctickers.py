@@ -33,8 +33,20 @@ for e in psconf.exch:
     myexch[e].load_markets()
 
 def lambda_handler(event, context):
+    global myexch
+    global psconf
     
-    random.shuffle(psconf.market_list)
+    psconf.collect()
+    for d in psconf.del_exch:
+        logger.info("config change: deleting exchange %s config")
+        del(myexch[d])
+    for a in psconf.new_exch:
+        logger.info("config change: new exchange %s config")
+        myexch[a] = eval ('ccxt.%s ()' % a)
+        myexch[a].setSandboxMode(psconf.exch_sandbox[a])
+        myexch[a].enableRateLimit = False
+        myexch[a].load_markets()
+        
     logger.info("exchange:market %s" % str(psconf.market_list))
     for x in psconf.market_list:
         nowdt = datetime.datetime.now(timezone.utc)  

@@ -25,6 +25,8 @@ psconf=yacgb_aws_ps()
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
+    psconf.collect()
+    
     #load the configuration to use for backtest from environment variables and event input
     config = event2config(event, psconf.exch, must_match=True)
     #grab some things from the config
