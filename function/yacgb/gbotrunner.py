@@ -44,7 +44,7 @@ class GbotRunner:
         self.gbot.save()
         
     def test_slortp(self, last_tick, high_tick, low_tick, ts=''):
-        if self.gbot.state == 'active':
+        if self.active:
             #collect last, highest high, and lowest low
             self.gbot.last_ticker=last_tick
             if high_tick > self.gbot.at_high_ticker:
@@ -69,61 +69,72 @@ class GbotRunner:
             return False
         return True
 
-    def backtest(self, tick=0, ts=BacktestDateTime().dtstf(), indicator=None):
-        self.dynamic_set_triggers()
-        if tick > 0 and not self.test_slortp(tick, tick, tick, ts):
-            # find lowest sell and highest buy grids
-            lowest_sell = 999999999
-            highest_buy = 0
-            sell_grid = -1
-            buy_grid = -1
-            #grid_below = -1
-            #grid_above = -1
-            closed_dict = {}
-            timestamp = BacktestDateTime(ts).ccxt_timestamp()
-            for g in self.gbot.grid:
-                pts = []
-                if g.mode == 'sell' and g.ticker < lowest_sell:
-                    # For debug
-                    lowest_sell = g.ticker
-                    sell_grid = g.step
-                if g.mode == 'sell' and g.type == 'limit' and g.ticker <= tick:
-                    # static grid, use the g.ticker (limit price)
-                    pts.append(g.ticker)
-                    pts.append(timestamp)
-                    closed_dict[g.step] = pts
-                if self.gbot.config.dynamic_grid and g.mode == 'sell' and g.type == 'trigger' and g.ticker <= tick:
-                    if indicator == None or indicator.sell_indicator:
-                        # For a dynamic grid, use tick instead of g.ticker
-                        pts.append(tick)
-                        pts.append(timestamp)
-                        closed_dict[g.step] = pts
-                    else:
-                        logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
-                if g.mode == 'buy' and g.ticker > highest_buy:
-                    # For debug
-                    highest_buy = g.ticker
-                    buy_grid = g.step
-                if g.mode == 'buy' and g.type != None and g.ticker >= tick:
-                    # static grid, use the g.ticker (limit price)
-                    pts.append(g.ticker)
-                    pts.append(timestamp)
-                    closed_dict[g.step] = pts
-                if self.gbot.config.dynamic_grid and g.mode == 'buy' and g.type == 'trigger' and g.ticker >= tick:
-                    if indicator == None or indicator.buy_indicator:
-                        # For a dynamic grid, use tick instead of g.ticker
-                        pts.append(tick)
-                        pts.append(timestamp)
-                        closed_dict[g.step] = pts
-                    else:
-                        logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick, indicator))
-                
-            logger.debug("%s tick %.2f sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, tick, sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_dict)))  
-            
-            self.closed_adjust(self.stepsmatch(closed_dict), ts)
-        
+    def backtest(self, cand, ts=BacktestDateTime().dtstf(), indicator=None):
+        ticks=[]
+        if self.gbot.config.backtest_timeframe == '1m':
+            ticks.append([cand.open, cand.high, cand.low, cand.close])
         else:
-            logger.info(ts + " skipped ticker: " + str(tick))
+            #loss of granularity for 1h and 1d tickers (but faster), evaluate each open/low/high/close in that order
+            ticks.append([cand.open, cand.open, cand.open, cand.open])
+            ticks.append([cand.low, cand.low, cand.low, cand.low])
+            ticks.append([cand.high, cand.high, cand.high, cand.high])
+            ticks.append([cand.close, cand.close, cand.close, cand.close])
+            
+        for tick in ticks:    
+            self.dynamic_set_triggers()
+            if tick[0] > 0 and not self.test_slortp(tick[0], tick[2], tick[1], ts):
+                # find lowest sell and highest buy grids
+                lowest_sell = 999999999
+                highest_buy = 0
+                sell_grid = -1
+                buy_grid = -1
+                #grid_below = -1
+                #grid_above = -1
+                closed_dict = {}
+                timestamp = BacktestDateTime(ts).ccxt_timestamp()
+                for g in self.gbot.grid:
+                    pts = []
+                    if g.mode == 'sell' and g.ticker < lowest_sell:
+                        # For debug
+                        lowest_sell = g.ticker
+                        sell_grid = g.step
+                    if g.mode == 'sell' and g.type == 'limit' and g.ticker <= tick[3]:
+                        # static grid, use the g.ticker (limit price)
+                        pts.append(g.ticker)
+                        pts.append(timestamp)
+                        closed_dict[g.step] = pts
+                    if self.gbot.config.dynamic_grid and g.mode == 'sell' and g.type == 'trigger' and g.ticker <= tick[0]:
+                        if indicator == None or indicator.sell_indicator:
+                            # For a dynamic grid, use tick instead of g.ticker
+                            pts.append(tick[3])
+                            pts.append(timestamp)
+                            closed_dict[g.step] = pts
+                        else:
+                            logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick[0], indicator))
+                    if g.mode == 'buy' and g.ticker > highest_buy:
+                        # For debug
+                        highest_buy = g.ticker
+                        buy_grid = g.step
+                    if g.mode == 'buy' and g.type != None and g.ticker >= tick[3]:
+                        # static grid, use the g.ticker (limit price)
+                        pts.append(g.ticker)
+                        pts.append(timestamp)
+                        closed_dict[g.step] = pts
+                    if self.gbot.config.dynamic_grid and g.mode == 'buy' and g.type == 'trigger' and g.ticker >= tick[0]:
+                        if indicator == None or indicator.buy_indicator:
+                            # For a dynamic grid, use tick instead of g.ticker
+                            pts.append(tick[3])
+                            pts.append(timestamp)
+                            closed_dict[g.step] = pts
+                        else:
+                            logger.info("step [%d] delayed trigger tick: %.5f %s" % (g.step, tick[0], indicator))
+                    
+                logger.debug("%s tick %s sell_grid %d @ %.2f buy_grid %d @ %.2f [%s]" %(ts, str(tick), sell_grid, lowest_sell, buy_grid, highest_buy, str(closed_dict)))  
+                
+                self.closed_adjust(self.stepsmatch(closed_dict), ts)
+            
+            else:
+                logger.info(ts + " skipped ticker: " + str(tick))
     
     def stepsmatch(self, steps):
         #generate a dictionary that emulates what a closed order looks like (minimally populated), with a key of the grid step
@@ -461,20 +472,21 @@ class GbotRunner:
         logger.info("state: %s" % self.gbot.state)
         
     def dynamic_set_triggers(self):
-        if self.gbot.config.dynamic_grid:
-            n = self._current_none()
-            f = []
-            f.append(n-1)
-            #f.append(n)
-            f.append(n+1)
-            for g in self.gbot.grid:
-                if g.step in f:
-                    g.type = 'trigger'
-                else:
-                    g.type = None
-        else:
-            for g in self.gbot.grid:
-                g.type = 'limit'
+        if self.active:
+            if self.gbot.config.dynamic_grid:
+                n = self._current_none()
+                f = []
+                f.append(n-1)
+                #f.append(n)
+                f.append(n+1)
+                for g in self.gbot.grid:
+                    if g.step in f:
+                        g.type = 'trigger'
+                    else:
+                        g.type = None
+            else:
+                for g in self.gbot.grid:
+                    g.type = 'limit'
                 
     def dynamic_check_triggers(self, tick, indicator):
         #This is only need for live (not backtesting), where we need to change a trigger to limit to initative a new order
@@ -546,5 +558,12 @@ class GbotRunner:
             if g.ex_orderid != None:
                 ret = True
                 break
+        return (ret)
+        
+    @property
+    def active(self):
+        ret = False
+        if self.gbot.state == 'active':
+            ret = True
         return (ret)
             

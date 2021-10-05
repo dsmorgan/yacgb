@@ -3,6 +3,8 @@ import pytest
 
 import os
 
+from yacgb.lookup import Candle
+
 from yacgb.gbotrunner import GbotRunner
 from model.orders import Orders
 
@@ -189,12 +191,16 @@ def test_grid3_basic(setup_gbot3):
 
 
 @local_dynamo_avail   
-def test_grid3_backtest(setup_gbot3):
+def test_grid3_backtest1(setup_gbot3):
     print("Grid...", setup_gbot3.gbot.gbotid)
-    setup_gbot3.backtest(180)
-    setup_gbot3.backtest(200)
-    setup_gbot3.backtest(220)
-    setup_gbot3.backtest(219.25)
+    c = Candle(1,'1h',candle_array=[1,180,180,180,180,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,200,200,200,200,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,220,220,220,220,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,219.25,219.25,219.25,219.25,1])
+    setup_gbot3.backtest(c)
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
@@ -216,13 +222,18 @@ def test_grid3_backtest(setup_gbot3):
 @local_dynamo_avail   
 def test_grid3_backtest_profit_protect(setup_gbot3):
     print("Grid...", setup_gbot3.gbot.gbotid)
-    setup_gbot3.backtest(180)
-    setup_gbot3.backtest(200)
-    setup_gbot3.backtest(220)
-    setup_gbot3.backtest(201)
-    setup_gbot3.backtest(182)
-    setup_gbot3.backtest(164)
-    setup_gbot3.backtest(180)
+    c = Candle(1,'1h',candle_array=[1,180,180,180,180,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,200,200,200,200,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,220,220,220,220,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,201,201,201,201,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,182,182,182,182,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,164,180,164,180,1])
+    setup_gbot3.backtest(c)
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
@@ -236,15 +247,24 @@ def test_grid3_backtest_profit_protect(setup_gbot3):
 @local_dynamo_avail   
 def test_grid3_backtest_take_profit(setup_gbot3):
     print("Grid...", setup_gbot3.gbot.gbotid)
-    setup_gbot3.backtest(180)
-    setup_gbot3.backtest(200)
-    setup_gbot3.backtest(220)
-    setup_gbot3.backtest(240)
-    setup_gbot3.backtest(266)
-    setup_gbot3.backtest(301)
-    setup_gbot3.backtest(240)
-    setup_gbot3.backtest(219)
-    setup_gbot3.backtest(180)
+    c = Candle(1,'1h',candle_array=[1,180,180,180,180,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,200,200,200,200,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,220,220,220,220,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,240,240,240,240,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,266,266,266,266,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,301,301,301,301,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,240,240,240,240,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,219,219,219,219,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,180,180,180,180,1])
+    setup_gbot3.backtest(c)
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:
@@ -259,12 +279,18 @@ def test_grid3_backtest_stop_loss(setup_gbot3):
     print("Grid...", setup_gbot3.gbot.gbotid)
     #work around for now to disable this
     setup_gbot3.gbot.config.profit_protect_percent=None
-    setup_gbot3.backtest(180)
-    setup_gbot3.backtest(160)
-    setup_gbot3.backtest(145)
-    setup_gbot3.backtest(99.87)
-    setup_gbot3.backtest(152)
-    setup_gbot3.backtest(200)
+    c = Candle(1,'1h',candle_array=[1,180,180,180,180,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,160,160,160,160,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,145,145,145,145,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,99.87,99.87,99.87,99.87,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,152,152,152,152,1])
+    setup_gbot3.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,200,200,200,200,1])
+    setup_gbot3.backtest(c)
     setup_gbot3.save()
     
     for g in setup_gbot3.gbot.grid:

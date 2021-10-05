@@ -84,10 +84,9 @@ def lambda_handler(event, context):
             exchange_item.start = str(nowdt)
         #store the current minute timestamp(s) in LAST
         exchange_item.last_timestamp = int(thisminute.timestamp())
-        #TODO: should this be nowdt OR thisminute?
+        #This uses nowdt instead of thisminute, because we need the seconds granularity to know how old this last record is
         exchange_item.last = str(nowdt)
      
-        #TODO: refactor this as a loop     
         timeframes = ['1m', '1h', '1d']
         for timeframe in timeframes:
             # Get x (1m, 1h, 1d) timeframe OHLCV candles data, grouped per y (hour, day, month) in a table entry
@@ -97,7 +96,6 @@ def lambda_handler(event, context):
     
         # This needs to happen after the OHLCV entries have all been collected, to save the last_timestamp
         exchange_item.save()
-        ####
     return ("OK")
     
 

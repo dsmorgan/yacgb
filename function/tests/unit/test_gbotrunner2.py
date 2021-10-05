@@ -3,6 +3,8 @@ import pytest
 
 import os
 
+from yacgb.lookup import Candle
+
 from yacgb.gbotrunner import GbotRunner
 from model.orders import Orders
 
@@ -80,12 +82,12 @@ def test_grid4_dynamic_grid_adjust(setup_gbot4):
     
     
 @local_dynamo_avail   
-def test_grid4_backtest(setup_gbot4):
+def test_grid4_backtest1(setup_gbot4):
     print("Grid...", setup_gbot4.gbot.gbotid)
-    setup_gbot4.backtest(180)
-    setup_gbot4.backtest(200)
-    setup_gbot4.backtest(220.1)
-    setup_gbot4.backtest(219.25)
+    c = Candle(1,'1h',candle_array=[1,180,200,180,200,1])
+    setup_gbot4.backtest(c)
+    c = Candle(1,'1h',candle_array=[1,220.1,220.1,219.25,219.25,1])
+    setup_gbot4.backtest(c)
     setup_gbot4.save()
     
     for g in setup_gbot4.gbot.grid:
@@ -107,13 +109,18 @@ def test_grid4_backtest(setup_gbot4):
 @local_dynamo_avail   
 def test_grid4_backtest2(setup_gbot4):
     print("Grid...", setup_gbot4.gbot.gbotid)
-    setup_gbot4.backtest(180)
-    setup_gbot4.dynamic_grid_adjust(180)
-    setup_gbot4.backtest(200)
-    setup_gbot4.dynamic_grid_adjust(200)
-    setup_gbot4.backtest(220.1)
-    setup_gbot4.dynamic_grid_adjust(220.1)
-    setup_gbot4.backtest(219.25)
+    c = Candle(1,'1h',candle_array=[1,180,180,180,180,1])
+    setup_gbot4.backtest(c)
+    #dynamic_grid_adjust is already called as part of backtest
+    #setup_gbot4.dynamic_grid_adjust(180)
+    c = Candle(1,'1h',candle_array=[1,200,200,200,200,1])
+    setup_gbot4.backtest(c)
+    #setup_gbot4.dynamic_grid_adjust(200)
+    c = Candle(1,'1h',candle_array=[1,220.1,220.1,220.1,220.1,1])
+    setup_gbot4.backtest(c)
+    #setup_gbot4.dynamic_grid_adjust(220.1)
+    c = Candle(1,'1h',candle_array=[1,219.25,219.25,219.25,219.25,1])
+    setup_gbot4.backtest(c)
     setup_gbot4.save()
     
     for g in setup_gbot4.gbot.grid:
@@ -128,7 +135,8 @@ def test_grid4_backtest2(setup_gbot4):
     #assert round(setup_gbot4.gbot.profit, 2) == 39.01
     ##assert round(setup_gbot4.gbot.profit, 2) == 25.78
     ###assert round(setup_gbot4.gbot.profit, 2) == 23.4
-    assert round(setup_gbot4.gbot.profit, 2) == 31.16
+    ##<>##assert round(setup_gbot4.gbot.profit, 2) == 31.16
+    assert round(setup_gbot4.gbot.profit, 2) == 32.93
     assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
     assert round(setup_gbot4.gbot.total_fees, 2) == 0.64
 
