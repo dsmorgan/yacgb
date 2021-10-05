@@ -6,7 +6,6 @@ import datetime
 from datetime import timezone
 import os
 import logging
-import random
 
 from yacgb.awshelper import yacgb_aws_ps
 from yacgb.ohlcv_sync import save_candles, candle_limits
@@ -38,10 +37,10 @@ def lambda_handler(event, context):
     
     psconf.collect()
     for d in psconf.del_exch:
-        logger.info("config change: deleting exchange %s config" % d)
+        logger.info("config change, deleting exchange config: %s" % d)
         del(myexch[d])
     for a in psconf.new_exch:
-        logger.info("config change: new exchange %s config" % a)
+        logger.info("config change, new exchange config: %s" % a)
         myexch[a] = eval ('ccxt.%s ()' % a)
         myexch[a].setSandboxMode(psconf.exch_sandbox[a])
         myexch[a].enableRateLimit = False
