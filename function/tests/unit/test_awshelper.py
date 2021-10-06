@@ -3,6 +3,8 @@ import pytest
 
 import os
 
+from ssm_cache import SSMParameterGroup
+
 from yacgb.awshelper import better_bool, yacgb_aws_ps
 
 aws_ssm_parameter_store = pytest.mark.skipif(os.environ.get('AWS_PS_GROUP') == None, 
@@ -58,7 +60,10 @@ def test_yacgb_aws_ps_live():
     assert len(testconfig.new_exch) == 0
     assert len(testconfig.del_exch) == 0
     
+    #need to change some internal parameters to simulate a change in PS, without actually changing anything in PS
     testconfig.env='test2'
+    testconfig.configgrp = SSMParameterGroup(base_path='/'+testconfig.bp+'/'+testconfig.env)
+    
     testconfig.collect()
     print (testconfig.exch)
     assert testconfig.exch == {'binanceus': ['XLM/USD'], 'kraken': ['LTC/USD'], 'coinbasepro': ['BTC/USD', 'ETH/USD']}

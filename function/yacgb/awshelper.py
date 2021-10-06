@@ -100,7 +100,8 @@ class yacgb_aws_ps:
         if self.ps:
             prev_exch=set([*self.exch])
             changed = []
-            self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env)
+            if not self.init:
+                self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, max_age=os.environ.get('AWS_PS_MAX_AGE', 360))
             try:
                 self.gbotids = self.configgrp.parameter('/gbotids').value
             except:
