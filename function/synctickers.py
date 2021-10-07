@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 
 logger.info("CCXT version: %s" % ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
-psconf=yacgb_aws_ps()
+psconf=yacgb_aws_ps(with_decryption=False)
 
 # Create tables in dynamodb if they don't exist already
 market_init()
