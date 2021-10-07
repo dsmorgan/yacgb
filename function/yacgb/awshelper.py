@@ -6,6 +6,7 @@ from base64 import b64decode
 from ssm_cache import SSMParameterGroup
 import logging
 import random
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,9 @@ def better_bool(s):
 class yacgb_aws_ps:
     def __init__(self, env=None, with_decryption=True):
         self.bp='yacgb'
-        self.max_age=int(os.environ.get('AWS_PS_MAX_AGE', 600))
+        self._max_age=int(os.environ.get('AWS_PS_MAX_AGE', 600))
+        self._max_age_delta = datetime.timedelta(seconds=self._max_age or 0)
+        self._last_refresh_time = None
         self.with_decryption=with_decryption
         self.configgrp=None
         self.exch={}
@@ -78,6 +81,12 @@ class yacgb_aws_ps:
                 self.gbotids.append(gbotid)
         #collect from AWS Parameter Store
         self.collect()
+    
+    def _should_refresh(self):
+        #The ssm_cache library doesn't support caching properly on individual parameters in a group. Implementing a work-around
+        if self._last_refresh_time == None:
+            return True
+        return datetime.datetime.utcnow() > self._last_refresh_time + self._max_age_delta
        
     def __build_market_list(self):
         self.market_list=[]
@@ -99,12 +108,13 @@ class yacgb_aws_ps:
         return(self.gbotids)
         
     def collect(self):
-        if self.ps:
+        if self.ps and self._should_refresh():
+            self._last_refresh_time = datetime.datetime.utcnow()
             prev_exch=set([*self.exch])
             changed = []
             if not self.init:
-                logging.info("Init Collect PS Parameter Group: %s max_age=%d with_decryption=%s" % ('/'+self.bp+'/'+self.env, self.max_age, self.with_decryption))
-                self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, max_age=self.max_age, with_decryption=self.with_decryption)
+                logging.info("Init Collect PS Parameter Group: %s max_age=%d with_decryption=%s" % ('/'+self.bp+'/'+self.env, self._max_age, self.with_decryption))
+                self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, max_age=self._max_age, with_decryption=self.with_decryption)
             try:
                 self.gbotids = self.configgrp.parameter('/gbotids').value
             except:

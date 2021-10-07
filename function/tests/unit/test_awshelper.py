@@ -63,6 +63,7 @@ def test_yacgb_aws_ps_live():
     #need to change some internal parameters to simulate a change in PS, without actually changing anything in PS
     testconfig.env='test2'
     testconfig.configgrp = SSMParameterGroup(base_path='/'+testconfig.bp+'/'+testconfig.env)
+    testconfig._last_refresh_time = None
     
     testconfig.collect()
     print (testconfig.exch)
