@@ -36,6 +36,7 @@ def better_bool(s):
 class yacgb_aws_ps:
     def __init__(self, env=None, with_decryption=True):
         self.bp='yacgb'
+        self.max_age=int(os.environ.get('AWS_PS_MAX_AGE', 600))
         self.with_decryption=with_decryption
         self.configgrp=None
         self.exch={}
@@ -102,9 +103,8 @@ class yacgb_aws_ps:
             prev_exch=set([*self.exch])
             changed = []
             if not self.init:
-                self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, 
-                            max_age=int(os.environ.get('AWS_PS_MAX_AGE', 600)), 
-                            with_decryption=self.with_decryption)
+                logging.info("Init Collect PS Parameter Group: %s max_age=%d with_decryption=%s" % ('/'+self.bp+'/'+self.env, self.max_age, self.with_decryption))
+                self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, max_age=self.max_age, with_decryption=self.with_decryption)
             try:
                 self.gbotids = self.configgrp.parameter('/gbotids').value
             except:
