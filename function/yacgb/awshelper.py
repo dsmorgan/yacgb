@@ -109,11 +109,12 @@ class yacgb_aws_ps:
         
     def collect(self):
         if self.ps and self._should_refresh():
+            logging.info("Collect PS Parameter Group: %s max_age=%d with_decryption=%s" % ('/'+self.bp+'/'+self.env, self._max_age, self.with_decryption))
             self._last_refresh_time = datetime.datetime.utcnow()
             prev_exch=set([*self.exch])
             changed = []
             if not self.init:
-                logging.info("Init Collect PS Parameter Group: %s max_age=%d with_decryption=%s" % ('/'+self.bp+'/'+self.env, self._max_age, self.with_decryption))
+                #This should work, but doesn't. max_age only applies to the current parameter, and not sub-parameters
                 self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, max_age=self._max_age, with_decryption=self.with_decryption)
             try:
                 self.gbotids = self.configgrp.parameter('/gbotids').value

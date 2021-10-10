@@ -101,8 +101,10 @@ def test_grid4_backtest1(setup_gbot4):
     assert setup_gbot4.gbot.last_ticker == 219.25
     #before dynamic_grid
     #assert round(setup_gbot4.gbot.profit, 2) == 32.60
-    assert round(setup_gbot4.gbot.profit, 2) == 32.93
-    assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
+    #assert round(setup_gbot4.gbot.profit, 2) == 32.93
+    assert round(setup_gbot4.gbot.profit, 2) == 33.42
+    #assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
+    assert round(setup_gbot4.gbot.step_profit, 2) == 39.85
     assert round(setup_gbot4.gbot.total_fees, 2) == 0.64
     
     
@@ -136,8 +138,10 @@ def test_grid4_backtest2(setup_gbot4):
     ##assert round(setup_gbot4.gbot.profit, 2) == 25.78
     ###assert round(setup_gbot4.gbot.profit, 2) == 23.4
     ##<>##assert round(setup_gbot4.gbot.profit, 2) == 31.16
-    assert round(setup_gbot4.gbot.profit, 2) == 32.93
-    assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
+    #assert round(setup_gbot4.gbot.profit, 2) == 32.93
+    assert round(setup_gbot4.gbot.profit, 2) == 33.42
+    #assert round(setup_gbot4.gbot.step_profit, 2) == 39.36
+    assert round(setup_gbot4.gbot.step_profit, 2) == 39.85
     assert round(setup_gbot4.gbot.total_fees, 2) == 0.64
 
 

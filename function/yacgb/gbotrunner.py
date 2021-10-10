@@ -156,10 +156,10 @@ class GbotRunner:
             #order['timestamp'] = ...
             if self.gbot.grid[step].mode == 'buy':
                 order['amount'] = self.gbot.grid[step].buy_base_quantity
-                order['cost'] = self.gbot.grid[step].buy_quote_quantity
+                #order['cost'] = self.gbot.grid[step].buy_quote_quantity
             if self.gbot.grid[step].mode == 'sell':
                 order['amount'] = self.gbot.grid[step].sell_base_quantity
-                order['cost'] = self.gbot.grid[step].sell_quote_quantity
+                #order['cost'] = self.gbot.grid[step].sell_quote_quantity
             odict[step] = order
             
         return (odict)
