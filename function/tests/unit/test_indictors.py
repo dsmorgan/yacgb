@@ -46,7 +46,7 @@ def setup_Indicators():
 def test_Indicators_all(setup_Indicators):
     for x in setup_Indicators.keys():
         print (setup_Indicators[x])
-        y = Indicators(setup_Indicators[x].candles_array)
+        y = Indicators(setup_Indicators[x])
         print (y)
         assert y.rsi < 100
         assert y.rsi > 0
@@ -54,19 +54,19 @@ def test_Indicators_all(setup_Indicators):
 def test_Indicators_1m(setup_Indicators):
     x = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('1m')
     print (x)
-    xx = Indicators(x.candles_array)
+    xx = Indicators(x)
     print (xx)
     assert xx.rsi == 33.388027760616424
     
     y = x.aggregate('2m')
     print (y)
-    yy = Indicators(y.candles_array)
+    yy = Indicators(y)
     print (yy)
     assert yy.rsi == 28.741090719199732
     
     z = x.aggregate('60m')
     print (z)
-    zz = Indicators(z.candles_array)
+    zz = Indicators(z)
     print (zz)
     assert zz.rsi == 30.573834696240226
     assert zz.macd == -5.319450284596769
@@ -76,7 +76,7 @@ def test_Indicators_1m(setup_Indicators):
 def test_Indicators_1m_indicator(setup_Indicators):
     i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')
     print (i)
-    ii = Indicators(i.candles_array)
+    ii = Indicators(i)
     print (ii)
     assert ii.rsi == 24.273064565786257
     assert ii.buy_indicator == False

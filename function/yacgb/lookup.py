@@ -28,7 +28,7 @@ class cacheItem:
         
 
 class ohlcvLookup:
-    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=32, ocache_maxsize=1024):
+    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=64, ocache_maxsize=2048):
         self.mcache_expire_seconds = mcache_expire_seconds
         self.ocache_expire_seconds = ocache_expire_seconds
         self.mcache_maxsize = mcache_maxsize
@@ -335,6 +335,17 @@ class Candles:
             if y[4] < h_close and y[4] > l_close:
                 close = y[4]
         return close
+    
+    def last_candle_age(self):
+        #this should adjust based on the current timestamp size
+        nowbdt = BacktestDateTime()
+        ts_bdt = BacktestDateTime(timestamp=self.candles_array[-1][0])
+        return (nowbdt.diffsec(last_bdt))
+        
+    def ohlcv_age(self):
+        nowbdt = BacktestDateTime()
+        last_bdt = BacktestDateTime(self.last)
+        return (nowbdt.diffsec(last_bdt))
         
     def aggregate(self, newtimeframe=None):
         #take an array of candles and aggregate into a new Candles. Usually requires starting with: 1m, 1h, 1d; but others might work as well.

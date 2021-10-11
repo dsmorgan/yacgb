@@ -86,7 +86,7 @@ def lambda_handler(event, context):
     #### backtest run START
     while end.laterthan(start):
         if x.gbot.config.dynamic_grid == True:
-            dyn_indicator = Indicators(olcache.get_candles(config['exchange'], config['market_symbol'], '1m', start.dtstf(timeframe), -100).aggregate('5m').candles_array)
+            dyn_indicator = Indicators(olcache.get_candles(config['exchange'], config['market_symbol'], '1m', start.dtstf(timeframe), -100).aggregate('5m'))
         lookup = olcache.get_candle(config['exchange'], config['market_symbol'], timeframe, start.dtstf(timeframe))
         x.backtest(lookup, start.dtstf(timeframe), dyn_indicator)
         #x.backtest(lookup.open, start.dtstf(timeframe), dyn_indicator)

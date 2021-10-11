@@ -98,31 +98,31 @@ def lambda_handler(event, context):
             ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
             logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, nowbdt.diffsec(ts_bdt)))
         #
-        i = Indicators(lookup.candles_array)
+        i = Indicators(lookup)
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
         #
         lll = lookup.aggregate('3m')
-        iii = Indicators(lll.candles_array)
+        iii = Indicators(lll)
         logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lll, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lll.dejitter_close(), iii))
         #
         lllll = lookup.aggregate('5m')
-        iiiii = Indicators(lllll.candles_array)
+        iiiii = Indicators(lllll)
         logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lllll, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lllll.dejitter_close(), iiiii))
         #
         tenl = lookup.aggregate('10m')
-        teni = Indicators(tenl.candles_array)
+        teni = Indicators(tenl)
         logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt)))
         logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
         #
         lookup_1h = olcache.get_candles(exchange, market_symbol, '1h', nowbdt.dtstf('1h'), -48)
         logger.info("%s %s %s" %(exchange, market_symbol, lookup_1h))
-        logger.info("%s %s %s" %(exchange, market_symbol, Indicators(lookup_1h.candles_array)))
+        logger.info("%s %s %s" %(exchange, market_symbol, Indicators(lookup_1h)))
         #
         lookup_1d = olcache.get_candles(exchange, market_symbol, '1d', nowbdt.dtstf('1d'), -30)
         logger.info("%s %s %s" %(exchange, market_symbol, lookup_1d))
-        logger.info("%s %s %s" %(exchange, market_symbol, Indicators(lookup_1d.candles_array)))
+        logger.info("%s %s %s" %(exchange, market_symbol, Indicators(lookup_1d)))
         
         #Cancel all open orders, if we triggered slorp OR when dynamic_grid=True
         if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*') or (x.gbot.config.dynamic_grid and x.open_orders):
