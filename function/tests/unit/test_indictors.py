@@ -81,4 +81,12 @@ def test_Indicators_1m_indicator(setup_Indicators):
     assert ii.rsi == 24.273064565786257
     assert ii.buy_indicator == False
     assert ii.sell_indicator == True
-       
+    
+def test_Indicators_1m_jsonp(setup_Indicators):
+    i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')
+    print (i)
+    ii = Indicators(i)
+    print (ii)
+    assert ii.jsonp[:98] == "{'Indicators': {'rsi': 24.273064565786257, 'buy_indicator': False, 'sell_indicator': True, 'macd':"
+    assert ii.jsonp[-15:] == "'valid': True}}"
+    

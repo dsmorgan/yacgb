@@ -466,14 +466,19 @@ class Candles:
                     match = BacktestDateTime(timestamp=new_start.ccxt_timestamp(self.timeframe))
                     
         return (ret)
+    
+    @property
+    def dts_st(self):
+        dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
+        return(dts.strftime('%Y%m%d %H:%M'))
         
+    @property
+    def dte_st(self):
+        dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
+        return(dte.strftime('%Y%m%d %H:%M'))
     
     def __str__(self):
-        dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
-        dts_st = dts.strftime('%Y%m%d %H:%M')
-        dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
-        dte_st = dte.strftime('%Y%m%d %H:%M')
-        return ("<Candles s:%s e:%s t:%s o:%f h:%f l:%f c:%f wac:%f v:%f av:%f pc:%f pa:%f lca:%f age:%f ?:%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
+        return ("<Candles s:%s e:%s t:%s o:%f h:%f l:%f c:%f wac:%f v:%f av:%f pc:%f pa:%f lca:%f age:%f ?:%s>" % (self.dts_st, self.dte_st, self.timeframe, self.open, self.high, 
                         self.low, self.close, self.wavg_close, self.volume, self.avg_volume(), self.change, self.amplitude, self.last_candle_age, self.ohlcv_age, self.valid))
                         
 def validate_tf(current_tf, new_tf=None):

@@ -1,7 +1,7 @@
 # https://itnext.io/use-ccxt-to-calculate-cryptocurrency-trade-indicators-102a3ac1428e
 
-from collections import OrderedDict
-import jsonpickle
+#from collections import OrderedDict
+#import jsonpickle
 import pandas as pd
 from stockstats import StockDataFrame
 
@@ -52,23 +52,21 @@ class Indicators(Candles):
     def jsonp(self):
         i='Indicators'
         c='Candles'
-        d = OrderedDict()
+        #d = OrderedDict()
+        d = {}
         
-        d[i]=OrderedDict()
+        #d[i]=OrderedDict()
+        d[i]={}
         d[i]['rsi']=self.rsi
         d[i]['buy_indicator']=self.buy_indicator
         d[i]['sell_indicator']=self.sell_indicator
         d[i]['macd']=self.macd
         d[i]['macds']=self.macds
         d[i]['macdh']=self.macdh
-        
-        d[c]=OrderedDict()
-        dts = datetime.datetime.fromtimestamp(int(self.candles_array[0][0]/1000), tz=timezone.utc)
-        dts_st = dts.strftime('%Y%m%d %H:%M')
-        dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
-        dte_st = dte.strftime('%Y%m%d %H:%M')
-        d[c]['start']=dts_st
-        d[c]['end']=dte_st
+        #d[c]=OrderedDict()
+        d[c]={}
+        d[c]['start']=self.dts_st
+        d[c]['end']=self.dte_st
         d[c]['timeframe']=self.timeframe
         d[c]['open']=self.open
         d[c]['high']=self.high 
@@ -84,7 +82,7 @@ class Indicators(Candles):
         d[c]['ohlcv_age']=self.ohlcv_age
         d[c]['valid']=self.valid
         
-        return(jsonpickle.encode(d))
+        return(str(d))
         
     def __str__(self):
         return ("<Indicators rsi:%f b:%s s:%s macd:%f macds:%f macdh:%f>" % (self.rsi, self.buy_indicator, self.sell_indicator, self.macd, self.macds, self.macdh))

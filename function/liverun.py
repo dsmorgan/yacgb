@@ -110,7 +110,7 @@ def lambda_handler(event, context):
         lookup_1h = olcache.get_candles(exchange, market_symbol, '1h', nowbdt.dtstf('1h'), -48)
         logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1h).jsonp))
         #
-        lookup_1d = olcache.get_candles(exchange, market_symbol, '1d', nowbdt.dtstf('1d'), -30)
+        lookup_1d = olcache.get_candles(exchange, market_symbol, '1d', nowbdt.dtstf('1d'), -30)git 
         logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1d).jsonp))
         
         #Cancel all open orders, if we triggered slorp OR when dynamic_grid=True
