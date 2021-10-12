@@ -96,22 +96,22 @@ def lambda_handler(event, context):
             logger.info("<U> %s %s %s" %(exchange, market_symbol, lookup))
         #
         i = Indicators(lookup)
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lookup.dejitter_close(), i.jsonp))
         #
         iii = Indicators(lookup.aggregate('3m'))
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, iii.dejitter_close(), iii))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, iii.dejitter_close(), iii.jsonp))
 
         iiiii = Indicators(lookup.aggregate('5m'))
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, iiiii.dejitter_close(), iiiii))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, iiiii.dejitter_close(), iiiii.jsonp))
         #
         teni = Indicators(lookup.aggregate('10m'))
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, teni.dejitter_close(), teni))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, teni.dejitter_close(), teni.jsonp))
         #
         lookup_1h = olcache.get_candles(exchange, market_symbol, '1h', nowbdt.dtstf('1h'), -48)
-        logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1h)))
+        logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1h).jsonp))
         #
         lookup_1d = olcache.get_candles(exchange, market_symbol, '1d', nowbdt.dtstf('1d'), -30)
-        logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1d)))
+        logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1d).jsonp))
         
         #Cancel all open orders, if we triggered slorp OR when dynamic_grid=True
         if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*') or (x.gbot.config.dynamic_grid and x.open_orders):
