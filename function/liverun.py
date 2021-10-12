@@ -99,13 +99,13 @@ def lambda_handler(event, context):
         logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
         #
         iii = Indicators(lookup.aggregate('3m'))
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lll.dejitter_close(), iii))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, iii.dejitter_close(), iii))
 
         iiiii = Indicators(lookup.aggregate('5m'))
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lllll.dejitter_close(), iiiii))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, iiiii.dejitter_close(), iiiii))
         #
         teni = Indicators(lookup.aggregate('10m'))
-        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, teni.dejitter_close(), teni))
         #
         lookup_1h = olcache.get_candles(exchange, market_symbol, '1h', nowbdt.dtstf('1h'), -48)
         logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1h)))
