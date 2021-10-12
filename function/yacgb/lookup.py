@@ -336,19 +336,22 @@ class Candles:
                 close = y[4]
         return close
     
+    @property
     def last_candle_age(self):
         #this should adjust based on the current timestamp size
         nowbdt = BacktestDateTime()
         ts_bdt = BacktestDateTime(timestamp=self.candles_array[-1][0])
-        return (nowbdt.diffsec(last_bdt))
-        
+        return (nowbdt.difftf(self.timeframe, ts_bdt))
+    
+    @property    
     def ohlcv_age(self):
         nowbdt = BacktestDateTime()
         last_bdt = BacktestDateTime(self.last)
         return (nowbdt.diffsec(last_bdt))
         
     def aggregate(self, newtimeframe=None):
-        #take an array of candles and aggregate into a new Candles. Usually requires starting with: 1m, 1h, 1d; but others might work as well.
+        #take an array of candles and aggregate into a new Candles. Usually requires starting with: 1m, 1h, 1d; but others might work as well 
+        # (e.g. 5m if going to 10m).
         # See validate_tf for set of valid timeframes, which is restricted to ensure that the offsets always align across source and 
         # destination candles.
        
@@ -470,8 +473,8 @@ class Candles:
         dts_st = dts.strftime('%Y%m%d %H:%M')
         dte = datetime.datetime.fromtimestamp(int(self.candles_array[-1][0]/1000), tz=timezone.utc)
         dte_st = dte.strftime('%Y%m%d %H:%M')
-        return ("<Candles s:%s e:%s t:%s o:%f h:%f l:%f c:%f wac:%f v:%f av:%f pc:%f pa:%f ?:%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
-                        self.low, self.close, self.wavg_close, self.volume, self.avg_volume(), self.change, self.amplitude, self.valid))
+        return ("<Candles s:%s e:%s t:%s o:%f h:%f l:%f c:%f wac:%f v:%f av:%f pc:%f pa:%f lca:%f age:%f ?:%s>" % (dts_st, dte_st, self.timeframe, self.open, self.high, 
+                        self.low, self.close, self.wavg_close, self.volume, self.avg_volume(), self.change, self.amplitude, self.last_candle_age, self.ohlcv_age, self.valid))
                         
 def validate_tf(current_tf, new_tf=None):
     validtfs = {'m': [1,2,3,4,5,6,10,12,15,20,30,60],

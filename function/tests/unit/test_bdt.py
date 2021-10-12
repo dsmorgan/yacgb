@@ -162,7 +162,23 @@ def test_bdt_diffsec():
     assert x.diffsec(y) == -120
     assert y.diffsec(x) == 120
     
+def test_bdt_difftf_1m():
+    x = BacktestDateTime('20210531 17:23')
+    y = BacktestDateTime('20210531 17:25')
+    assert x.difftf('1m', y) == -120
+    assert y.difftf('15m', x) == 120
     
+def test_bdt_difftf_1h():
+    x = BacktestDateTime('20210531 15:10')
+    y = BacktestDateTime('20210531 17:21')
+    assert x.difftf('1h', y) == -131
+    assert y.difftf('12h', x) == 131
+    
+def test_bdt_difftf_1d():
+    x = BacktestDateTime('20210531 12:15')
+    y = BacktestDateTime('20210601 00:00')
+    assert x.difftf('1d', y) == -11.75
+    assert y.difftf('1d', x) == 11.75
     
     
     

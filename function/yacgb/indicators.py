@@ -50,7 +50,7 @@ class Indicators(Candles):
 
     @property    
     def jsonp(self):
-        i='Indicator'
+        i='Indicators'
         c='Candles'
         d = OrderedDict()
         
@@ -74,11 +74,14 @@ class Indicators(Candles):
         d[c]['high']=self.high 
         d[c]['low']=self.low
         d[c]['close']=self.close
+        d[c]['dejitter_close']=self.dejitter_close()
         d[c]['wavg_close']=self.wavg_close
         d[c]['volume']=self.volume
         d[c]['avg_volume']=self.avg_volume()
         d[c]['change']=self.change
         d[c]['amplitude']=self.amplitude
+        d[c]['last_candle_age']=self.last_candle_age
+        d[c]['ohlcv_age']=self.ohlcv_age
         d[c]['valid']=self.valid
         
         return(jsonpickle.encode(d))

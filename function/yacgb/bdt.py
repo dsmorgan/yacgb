@@ -47,36 +47,44 @@ class BacktestDateTime:
     def diffsec(self, anotherbdt=None):
         return ((self.t-anotherbdt.t).total_seconds())
         
+    def difftf(self, tf='1m', anotherbdt=None):
+        if tf.endswith('m'):
+            return ((self.t-anotherbdt.t).total_seconds())
+        if tf.endswith('h'):
+            return ((self.t-anotherbdt.t).total_seconds()/60)
+        #elif tf.endswith('d'):
+        return ((self.t-anotherbdt.t).total_seconds()/(3600))
+        
     def dtstf(self, tf='1m'):
-        if tf == '1m':
+        if tf.endswith('m'):
             return (self.t.strftime("%Y%m%d %H:%M"))
-        elif tf == '1h':
+        elif tf.endswith('h'):
             return (self.t.strftime("%Y%m%d %H:00"))
-        #elif tf == '1d'
+        #elif tf.endswith('d'):
         return (self.t.strftime("%Y%m%d 00:00"))
         
     def dtskey(self, tf='1m'):
-        if tf == '1m':
+        if tf.endswith('m'):
             return (self.t.strftime("%Y%m%d %H:00"))
-        elif tf == '1h':
+        elif  tf.endswith('h'):
             return (self.t.strftime("%Y%m%d 00:00"))
-        #elif tf == '1d'
+        #elif tf.endswith('d'):
         return (self.t.strftime("%Y%m01 00:00"))
             
     def addtf(self, tf='1m', offset=1):
-        if tf == '1m':
+        if tf.endswith('m'):
             self.t = self.t + datetime.timedelta(minutes=offset)
-        elif tf == '1h':
+        elif tf.endswith('h'):
             self.t = self.t + datetime.timedelta(hours=offset)
-        else: #tf == '1d', increment a day if not 1m or 1h
+        else: #tf.endswith('d'), increment a day if not 1m or 1h
             self.t = self.t + datetime.timedelta(days=offset)
             
     def addkey(self, tf='1m', offset=1):
-        if tf == '1m':
+        if tf.endswith('m'):
             self.t = self.t + datetime.timedelta(hours=offset)
-        elif tf == '1h':
+        elif tf.endswith('h'):
             self.t = self.t + datetime.timedelta(days=offset)
-        else: #tf == '1d', increment a day if not 1m or 1h
+        else: #tf.endswith('d'), increment a day if not 1m or 1h
             month = self.t.month - 1 + offset
             year = self.t.year + month // 12
             month = month % 12 + 1
@@ -86,17 +94,17 @@ class BacktestDateTime:
             self.t =  datetime.datetime(year, month, day, hour=hour, minute=minute, tzinfo=timezone.utc)
             
     def ccxt_timestamp(self, tf='1m'):
-        if tf == '1m':
+        if tf.endswith('m'):
             return (int(self.t.replace(second=0, microsecond=0).timestamp()*1000))
-        elif tf == '1h':
+        elif tf.endswith('h'):
             return (int(self.t.replace(minute=0, second=0, microsecond=0).timestamp()*1000))
-        #elif timeframe == '1d':
+        #elif tf.endswith('d'):
         return (int(self.t.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()*1000))
          
     def ccxt_timestamp_key(self, tf='1m'):
-        if tf == '1m':
+        if tf.endswith('m'):
             return (int(self.t.replace(minute=0, second=0, microsecond=0).timestamp()*1000))
-        elif tf == '1h':
+        elif tf.endswith('h'):
             return (int(self.t.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()*1000))
-        #elif timeframe == '1d':
+        #elif tf.endswith('d'):
         return (int(self.t.replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp()*1000))

@@ -54,7 +54,7 @@ def setup_liveinit_event(setup_env):
     config_gbot= {'exchange': setup_env[0], 
             'market_symbol': setup_env[1], 
             'grid_spacing': 0.02, 
-            'total_quote': 10000, 
+            'total_quote': 8000, 
             'min_percent_start': 0.25, 
             'max_percent_start': 0.25, 
             'reserve': 0, 

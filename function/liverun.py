@@ -89,40 +89,29 @@ def lambda_handler(event, context):
         timeframe = '1m'
         nowbdt = BacktestDateTime()
         lookup = olcache.get_candles(exchange, market_symbol, timeframe, nowbdt.dtstf(timeframe), -300)
-        ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
-        last_bdt = BacktestDateTime(lookup.last)
-        logger.info("%s %s %s tsdiffsec: %f difflastsec: %f" %(exchange, market_symbol, lookup, nowbdt.diffsec(ts_bdt), nowbdt.diffsec(last_bdt)))
+        logger.info("%s %s %s" %(exchange, market_symbol, lookup))
         # check here how far behind the last candle is, and when the record was written
-        if nowbdt.diffsec(last_bdt) > 15:
+        if lookup.ohlcv_age > 15:
             lookup.update(myexch[exchange].fetchOHLCV(market_symbol, timeframe, limit=11))
-            ts_bdt = BacktestDateTime(timestamp=lookup.candles_array[-1][0])
-            logger.info("<U> %s %s %s tsdiffsec: %f" %(exchange, market_symbol, lookup, nowbdt.diffsec(ts_bdt)))
+            logger.info("<U> %s %s %s" %(exchange, market_symbol, lookup))
         #
         i = Indicators(lookup)
-        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lookup.dejitter_close(), i))
         #
-        lll = lookup.aggregate('3m')
-        iii = Indicators(lll)
-        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lll, ts_bdt.diffsec(nowbdt)))
-        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lll.dejitter_close(), iii))
+        iii = Indicators(lookup.aggregate('3m'))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lll.dejitter_close(), iii))
+
+        iiiii = Indicators(lookup.aggregate('5m'))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, lllll.dejitter_close(), iiiii))
         #
-        lllll = lookup.aggregate('5m')
-        iiiii = Indicators(lllll)
-        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, lllll, ts_bdt.diffsec(nowbdt)))
-        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, lllll.dejitter_close(), iiiii))
-        #
-        tenl = lookup.aggregate('10m')
-        teni = Indicators(tenl)
-        logger.info("%s %s %s tsdiffsec: %f" %(exchange, market_symbol, tenl, ts_bdt.diffsec(nowbdt)))
-        logger.info("%s %s dc:%f %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
+        teni = Indicators(lookup.aggregate('10m'))
+        logger.info("%s %s dc:%f\r %s" %(exchange, market_symbol, tenl.dejitter_close(), teni))
         #
         lookup_1h = olcache.get_candles(exchange, market_symbol, '1h', nowbdt.dtstf('1h'), -48)
-        logger.info("%s %s %s" %(exchange, market_symbol, lookup_1h))
-        logger.info("%s %s %s" %(exchange, market_symbol, Indicators(lookup_1h)))
+        logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1h)))
         #
         lookup_1d = olcache.get_candles(exchange, market_symbol, '1d', nowbdt.dtstf('1d'), -30)
-        logger.info("%s %s %s" %(exchange, market_symbol, lookup_1d))
-        logger.info("%s %s %s" %(exchange, market_symbol, Indicators(lookup_1d)))
+        logger.info("%s %s\r %s" %(exchange, market_symbol, Indicators(lookup_1d)))
         
         #Cancel all open orders, if we triggered slorp OR when dynamic_grid=True
         if x.test_slortp(lookup.dejitter_close(), lookup.high, lookup.low, '*') or (x.gbot.config.dynamic_grid and x.open_orders):
