@@ -87,6 +87,6 @@ def test_Indicators_1m_jsonp(setup_Indicators):
     print (i)
     ii = Indicators(i)
     print (ii)
-    assert ii.jsonp[:98] == "{'Indicators': {'rsi': 24.273064565786257, 'buy_indicator': False, 'sell_indicator': True, 'macd':"
-    assert ii.jsonp[-15:] == "'valid': True}}"
-    
+    print(ii.jsonp)
+    assert ii.jsonp[:98] == '{"Indicators": {"rsi": 24.273064565786257, "buy_indicator": false, "sell_indicator": true, "macd":'
+    assert ii.jsonp[-15:] == '"valid": true}}'

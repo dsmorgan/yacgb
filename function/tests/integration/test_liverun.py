@@ -19,7 +19,7 @@ def setup_env():
     #Careful that this doesn't overlap with real exchange/market_symbol values you may use locally, otherwise it will get deleted on clean up. 
     #  However, these values need to exist on the sandbox api service    
     test_exchange = 'binanceus'
-    test_market = 'ETH/USDT'
+    test_market = 'ETH/BUSD'
     
     os.environ['AWS_PS_GROUP'] = 'test'
     os.environ['EXCHANGE'] = test_exchange

@@ -13,3 +13,4 @@ ssm-cache==2.10
 testresources==2.0.1
 pandas==1.2.5
 stockstats==0.3.2
+jsonpickle==2.0.0

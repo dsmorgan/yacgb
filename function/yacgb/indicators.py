@@ -1,9 +1,8 @@
 # https://itnext.io/use-ccxt-to-calculate-cryptocurrency-trade-indicators-102a3ac1428e
 
-#from collections import OrderedDict
-#import jsonpickle
 import pandas as pd
 from stockstats import StockDataFrame
+import jsonpickle
 
 from yacgb.lookup import Candles
 
@@ -52,18 +51,16 @@ class Indicators(Candles):
     def jsonp(self):
         i='Indicators'
         c='Candles'
-        #d = OrderedDict()
         d = {}
         
-        #d[i]=OrderedDict()
         d[i]={}
-        d[i]['rsi']=self.rsi
-        d[i]['buy_indicator']=self.buy_indicator
-        d[i]['sell_indicator']=self.sell_indicator
-        d[i]['macd']=self.macd
-        d[i]['macds']=self.macds
-        d[i]['macdh']=self.macdh
-        #d[c]=OrderedDict()
+        d[i]['rsi']=float(self.rsi)
+        d[i]['buy_indicator']=bool(self.buy_indicator)
+        d[i]['sell_indicator']=bool(self.sell_indicator)
+        d[i]['macd']=float(self.macd)
+        d[i]['macds']=float(self.macds)
+        d[i]['macdh']=float(self.macdh)
+        
         d[c]={}
         d[c]['start']=self.dts_st
         d[c]['end']=self.dte_st
@@ -79,11 +76,10 @@ class Indicators(Candles):
         d[c]['change']=self.change
         d[c]['amplitude']=self.amplitude
         d[c]['last_candle_age']=self.last_candle_age
-        d[c]['ohlcv_age']=self.ohlcv_age
+        d[c]['ohlcv_age']=float(self.ohlcv_age)
         d[c]['valid']=self.valid
         
-        return(str(d))
+        return(jsonpickle.encode(d))
         
     def __str__(self):
         return ("<Indicators rsi:%f b:%s s:%s macd:%f macds:%f macdh:%f>" % (self.rsi, self.buy_indicator, self.sell_indicator, self.macd, self.macds, self.macdh))
-    
