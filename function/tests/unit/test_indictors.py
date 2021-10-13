@@ -26,6 +26,7 @@ def setup_Indicators():
         timeframe = mz.split('_', 1)[1].rstrip('.csv')
         
         ca = Candles(timeframe)
+        ca.set_last(str(datetime.datetime.now(timezone.utc)))
         with open(ohlcv_path + f, 'r') as fl:
             while line := fl.readline():
                 #convert to 1 int and 5 floats
@@ -84,9 +85,16 @@ def test_Indicators_1m_indicator(setup_Indicators):
     
 def test_Indicators_1m_jsonp(setup_Indicators):
     i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')
+    
     print (i)
     ii = Indicators(i)
     print (ii)
     print(ii.jsonp)
     assert ii.jsonp[:98] == '{"Indicators": {"rsi": 24.273064565786257, "buy_indicator": false, "sell_indicator": true, "macd":'
     assert ii.jsonp[-15:] == '"valid": true}}'
+    
+    print((setup_Indicators['pytest_ETH1/USD_1m'].last))
+    print (i.last)
+    print (ii.last)
+    assert (setup_Indicators['pytest_ETH1/USD_1m'].last) == (ii.last)
+    

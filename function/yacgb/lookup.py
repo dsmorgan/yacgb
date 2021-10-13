@@ -224,7 +224,7 @@ class Candle:
 class Candles:
     def __init__(self, timeframe='1m', candles_array=[], last=None):
         self.timeframe=timeframe
-        self.last=None
+        self.last=last
         if len(candles_array)==0:
             self.valid = False
             self.candles_array = [[0,0,0,0,0,0]]
