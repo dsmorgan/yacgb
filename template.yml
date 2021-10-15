@@ -43,8 +43,8 @@ Resources:
       Runtime: python3.8
       CodeUri: function/
       Description: Using historical OHLCV data in dynamodb, test crypto gbot parameters 
-      Timeout: 180
-      MemorySize: 4096
+      Timeout: 800
+      MemorySize: 1024
       AutoPublishAlias: prod
       Environment:
         Variables:

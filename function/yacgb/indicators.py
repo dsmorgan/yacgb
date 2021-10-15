@@ -14,7 +14,14 @@ class Indicators(Candles):
         header = ['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']
         df = pd.DataFrame(self.candles_array, columns=header)
         self.sdf  = StockDataFrame.retype(df)
-    
+
+    # @property
+    # def i_close(self):
+    #     #return self.sdf.loc[10].at['timestamp'] 
+    #     #return len(self.sdf) + len(self.candles_array)
+    #     return self.sdf.iloc[-1].at['rsi_14']
+       
+   
     @property
     def rsi(self):
         return self.sdf['rsi_14'].iloc[-1] 

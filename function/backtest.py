@@ -24,7 +24,7 @@ logger.info("CCXT version: %s" % ccxt.__version__)
 #AWS parameter store usage is optional, and can be overridden with environment variables
 psconf=yacgb_aws_ps()
 #OHLCV table lookup cache
-olcache=ohlcvLookup()
+olcache=ohlcvLookup(quiet=True)
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)

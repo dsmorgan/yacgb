@@ -28,13 +28,14 @@ class cacheItem:
         
 
 class ohlcvLookup:
-    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=64, ocache_maxsize=2048):
+    def __init__(self, mcache_expire_seconds=10, ocache_expire_seconds=10, mcache_maxsize=64, ocache_maxsize=2048, quiet=False):
         self.mcache_expire_seconds = mcache_expire_seconds
         self.ocache_expire_seconds = ocache_expire_seconds
         self.mcache_maxsize = mcache_maxsize
         self.ocache_maxsize = ocache_maxsize
         self.mcache = {}
         self.ocache = {}
+        self.quiet=quiet
         
     def __str__(self):
         mstr = ''
@@ -83,7 +84,10 @@ class ohlcvLookup:
         #TODO: add rate-limiting
         try:
             mkt = Market.get(exchange, market_symbol)
-            logger.info("get_market cache miss: %s" % mkey)
+            if self.quiet:
+                logger.debug("get_market cache miss: %s" % mkey)
+            else:
+                logger.info("get_market cache miss: %s" % mkey)
             #add something for caching?
             self.mcache[mkey] = cacheItem(mkey, mkt.to_dict())
             return self.mcache[mkey]
@@ -110,7 +114,6 @@ class ohlcvLookup:
         #else get from dynamodb
         try:
             o = OHLCV.get(okey, ktimestamp)
-            logger.info("get_ohlcv cache miss: %s" % oktkey)
             e = True
             # check that:
             # 1) o.array is full (need to look at timeframe and ktimestamp to determine how many elements that should be)
@@ -134,7 +137,11 @@ class ohlcvLookup:
             if now_twomin_ago.laterthan(last_btdt) and last_btdt_tf.laterthan(array_last_btdt):
                 logger.debug ("cache set: 3 & 4 are true, no cache expire")
                 e = False
-            
+            if self.quiet:
+                logger.debug("get_ohlcv cache miss: %s (%s)" % (oktkey, str(e)))
+            else:
+                logger.info("get_ohlcv cache miss: %s (%s)" % (oktkey, str(e)))
+                
             self.ocache[oktkey] = cacheItem(oktkey, o.to_dict(), expire=e)
 
             return self.ocache[oktkey]

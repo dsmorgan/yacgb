@@ -98,3 +98,11 @@ def test_Indicators_1m_jsonp(setup_Indicators):
     print (ii.last)
     assert (setup_Indicators['pytest_ETH1/USD_1m'].last) == (ii.last)
     
+    
+#def test_Indicators_1m_closetest(setup_Indicators):
+#    i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')
+#    ii = Indicators(i)
+#    print (ii.jsonp)
+#    
+#    assert ii.i_close == 24.273064565786257
+    
