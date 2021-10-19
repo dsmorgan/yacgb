@@ -140,6 +140,39 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: rate(1 minute)
+  api:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api.lambda_handler
+      Runtime: python3.8
+      CodeUri: function/
+      Description: Setup a new gbot running against a live account on an exchange
+      Timeout: 30
+      MemorySize: 256
+      AutoPublishAlias: prod
+      Environment:
+        Variables:
+          AWS_PS_GROUP: prod
+          AWS_PS_MAX_AGE: 60
+          TABLE_MARKET: !Ref Market
+          TABLE_OHLCV: !Ref OHLCV
+          TABLE_GBOT: !Ref Gbot
+          TABLE_ORDERS: !Ref Orders
+      # Function's execution role
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: yacgb/*
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Gbot
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Orders
+        - DynamoDBReadPolicy:
+            TableName: !Ref Market
+        - DynamoDBReadPolicy:
+            TableName: !Ref OHLCV
+      Tracing: Active
+      Layers:
+        - !Ref libs
   libs:
     Type: AWS::Serverless::LayerVersion
     Properties:
