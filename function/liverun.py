@@ -185,22 +185,19 @@ def lambda_handler(event, context):
     return (response)
 
 if __name__ == "__main__":
-    logfile = 'bot.log'
+    import json
     logging.basicConfig(level=logging.INFO, format='%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', 
-                            datefmt='%Y%m%d %H:%M:%S', filename=logfile)
+                            datefmt='%Y%m%d %H:%M:%S', filename='bot.log')
     if (os.environ.get('DYNAMODB_HOST') == None):
         print ('DYNAMODB_HOST not set')
         exit()
-
+      
     print ('DYNAMODB_HOST=' + os.environ.get('DYNAMODB_HOST'))
-    print ('logging output to ' + logfile)
-    error_count=0
-    while True:
-        try:
-            logging.info(lambda_handler(None, None))
-        except Exception:
-            logging.exception("Fatal error in main loop")
-            error_count+=1
-        sleep_time = 60 - (time.time()-25) % 60
-        logging.info("sleeping %f error count %d" %(sleep_time, error_count))
-        time.sleep(sleep_time)
+    
+    if (len(sys.argv) != 2):
+        print ("error: missing event json file")
+        exit(1)
+    with open(sys.argv[1]) as json_file:
+        event = json.load(json_file)
+    
+    print (lambda_handler(event, None))
