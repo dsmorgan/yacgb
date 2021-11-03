@@ -6,6 +6,7 @@ import datetime
 from datetime import timezone
 import logging
 import os
+import json
 
 #from model.orders import Orders, orders_init
 #from yacgb.lookup import OrderBookLookup
@@ -39,7 +40,7 @@ for e in psconf.exch:
     # interfere with server side rate limiting. Moving this to global reduces the frequency it needs to be called.
     myexch[e].load_markets()
 
-orders_init()
+#orders_init()
 
 def lambda_handler(event, context):
     run_start = datetime.datetime.now(timezone.utc)
@@ -62,16 +63,28 @@ def lambda_handler(event, context):
     
     gbotids = psconf.shuffled_gbotids
     response = {}
-    response['gbotids'] = gbotids
+    #response['gbotids'] = gbotids
     logger.info(response)
 
     for gbotid in gbotids:
         #load Gbot, TODO: need to handle if it can't be found
         x = GbotRunner(gbotid=gbotid)
+        response[gbotid]=x.gbot.to_dict()
 
     run_end = datetime.datetime.now(timezone.utc)
     logger.info('RUN TIME: %s', str(run_end-run_start))
-    return (response)
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Credentials': 'true',
+            'Content-Type': 'application/json'
+        },
+        'body': json.dumps(response)
+    }
+ 
 
 if __name__ == "__main__":
     import json

@@ -566,4 +566,21 @@ class GbotRunner:
         if self.gbot.state == 'active':
             ret = True
         return (ret)
+        
+    @property
+    def gbot_dict(self):
+        r = {}
+        #const step = 0.03;
+        #const exchange = "binanceus";
+        #const market = "ADA/USD";
+        #const buy_l = [3204];
+        #const none_l = [2100, 3300, 5500];
+        #const sell_l = [3399];
+        #at_high
+        #at_low
+        #profit_protect (percent)
+        #take_profit, stop_loss (solid)
+    
+        
+        return (r)
             
