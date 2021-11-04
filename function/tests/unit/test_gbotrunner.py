@@ -355,3 +355,11 @@ def test_grid3_closed_adjust(setup_gbot3):
     assert setup_gbot3.gbot.state == 'active'
     assert setup_gbot3.gbot.transactions == 15
     assert setup_gbot3._current_none() == 4
+    
+@local_dynamo_avail   
+def test_grid3_gbot_dict(setup_gbot3):
+    print("Grid...", setup_gbot3.gbot.gbotid)
+    x = setup_gbot3.gbot_dict
+    print (x)
+    assert len(x) == 9
+    assert x['exchange'] == 'binanceus'

@@ -84,7 +84,7 @@ class OrdersCapture:
                     dd = Orders.get(dorder.ex_orderid)
                     dd.delete()
                 except Orders.DoesNotExist:
-                    print ("Orders Delete Error, %s does not exist" % dorder.ex_orderid)
+                    logger.error("Orders Delete Error, %s does not exist" % dorder.ex_orderid)
     
     def add(self, matched_step, corder):
         o = OrderParse(step=matched_step, gbotid=self.gbotid, exchange=self.exchange, makerfee=self.makerfee, takerfee=self.takerfee, 

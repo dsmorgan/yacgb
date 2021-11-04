@@ -566,21 +566,46 @@ class GbotRunner:
         if self.gbot.state == 'active':
             ret = True
         return (ret)
+    
+    @property
+    def _none_l(self):
+        ret = []
+        ret.append(self.gbot.grid[0].ticker)
+        ret.append(self.gbot.grid[-1].ticker)
+        for g in self.gbot.grid:
+            if g.mode == "NONE":
+                ret.append(g.ticker)
+        return (ret)
         
+    @property
+    def _buy_l(self):
+        ret = []
+        for g in self.gbot.grid:
+            if g.mode == "buy" and g.type != None:
+                ret.append(g.ticker)
+        return (ret)
+
+    @property
+    def _sell_l(self):
+        ret = []
+        for g in self.gbot.grid:
+            if g.mode == "sell" and g.type != None:
+                ret.append(g.ticker)
+        return (ret) 
+ 
     @property
     def gbot_dict(self):
         r = {}
-        #const step = 0.03;
-        #const exchange = "binanceus";
-        #const market = "ADA/USD";
-        #const buy_l = [3204];
-        #const none_l = [2100, 3300, 5500];
-        #const sell_l = [3399];
-        #at_high
-        #at_low
+        r['gbotid'] = self.gbot.gbotid
+        r['config_grid_spacing'] = self.gbot.config['grid_spacing']
+        r['exchange'] = self.gbot.exchange
+        r['market_symbol'] = self.gbot.market_symbol
+        r['at_high_ticker'] = self.gbot.at_high_ticker
+        r['at_low_ticker'] = self.gbot.at_low_ticker
+        r['buy_l'] = self._buy_l
+        r['none_l'] = self._none_l
+        r['sell_l'] = self._sell_l
         #profit_protect (percent)
         #take_profit, stop_loss (solid)
-    
-        
         return (r)
             
