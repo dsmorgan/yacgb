@@ -37,7 +37,7 @@ def better_bool(s):
 class yacgb_aws_ps:
     def __init__(self, env=None, with_decryption=True):
         self.bp='yacgb'
-        self._max_age=int(os.environ.get('AWS_PS_MAX_AGE', 600))
+        self._max_age=int(os.environ.get('AWS_PS_MAX_AGE', 1200))
         self._max_age_delta = datetime.timedelta(seconds=self._max_age or 0)
         self._last_refresh_time = None
         self.with_decryption=with_decryption

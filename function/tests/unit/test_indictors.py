@@ -98,6 +98,18 @@ def test_Indicators_1m_jsonp(setup_Indicators):
     print (ii.last)
     assert (setup_Indicators['pytest_ETH1/USD_1m'].last) == (ii.last)
     
+
+def test_Indicators_1m_ca_dict(setup_Indicators):
+    i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')
+    print (i)
+    ii = Indicators(i)
+    print (ii)
+    c = ii.ca_dict
+    print(c)
+    assert c['g_o'][1] == 3324.74
+    assert c['width'] == 200000
+    
+ 
     
 #def test_Indicators_1m_closetest(setup_Indicators):
 #    i = setup_Indicators['pytest_ETH1/USD_1m'].aggregate('5m')

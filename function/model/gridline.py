@@ -18,3 +18,9 @@ class GridLine(MapAttribute):
     buy_count = NumberAttribute(default=0)
     sell_count = NumberAttribute(default=0)
     ex_orderid = UnicodeAttribute(null=True)
+    
+    def to_dict(self):
+        rval = {}
+        for key in self.attribute_values:
+            rval[key] = self.__getattribute__(key)
+        return rval

@@ -4,6 +4,7 @@ import pytest
 import os
 
 from yacgb.orderscapture import OrdersCapture
+from yacgb.orderslookup import OrdersGet
 
 
 local_dynamo_avail = pytest.mark.skipif(os.environ.get('DYNAMODB_HOST') == None, 
@@ -213,3 +214,38 @@ def test_orders2(setup_orders1):
     assert setup_orders1.closed_list[2].fee_cost == 0.78
     assert setup_orders1.closed_list[2].timestamp == 1618239581831
     assert setup_orders1.closed_list[2].timestamp_st == '2021-04-12 14:59:41'
+    
+@local_dynamo_avail
+def test_orderslookup1(setup_orders1):
+    torder= {
+        'symbol': 'XXX1/USD',
+        'status':'closed',
+        'type': 'limit',
+        'side': 'buy',
+        'price': 90,
+        'average': 89,
+        'amount': 4
+        }
+    setup_orders1.add(1, torder)
+    
+    torder= {
+        'symbol': 'XXX1/USD',
+        'status':'closed',
+        'type': 'limit',
+        'side': 'sell',
+        'price': 99,
+        'average': 100,
+        'amount': 4
+        }
+    setup_orders1.add(2, torder)
+    
+    x = OrdersGet('testgbot1')
+    xd = x.orders_dict
+    
+    assert len(xd) == 10
+    assert xd['buy_average'] == [89]
+    assert xd['sell_average'] == [100]
+    
+    
+    
+    

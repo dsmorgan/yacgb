@@ -44,7 +44,17 @@ class Gbot(Model):
     start = UnicodeAttribute(null=True)
     last_timestamp = NumberAttribute(null=True)
     last = UnicodeAttribute(null=True)
-
+    
+    def to_dict(self):
+        rval = {}
+        for key in self.attribute_values:
+            if key == 'config':
+                rval[key] = None
+            elif key == 'grid':
+                rval[key] = None
+            else:
+                rval[key] = self.__getattribute__(key)
+        return rval
 
 def gbot_init():
     if not Gbot.exists():

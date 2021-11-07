@@ -2,7 +2,7 @@
 
 import pandas as pd
 from stockstats import StockDataFrame
-import jsonpickle
+import json
 
 from yacgb.lookup import Candles
 
@@ -86,7 +86,37 @@ class Indicators(Candles):
         d[c]['ohlcv_age']=self.ohlcv_age
         d[c]['valid']=self.valid
         
-        return(jsonpickle.encode(d))
+        return(json.dumps(d))
+    
+    @property    
+    def ca_dict(self):
+        r = {}
+        inc = self.sdf.close >= self.sdf.open
+        dec = self.sdf.open > self.sdf.close
+        
+        r['g_ts'] = self.sdf.timestamp[inc].to_list()
+        r['g_o'] = self.sdf.open[inc].to_list()
+        r['g_h'] = self.sdf.high[inc].to_list()
+        r['g_l'] = self.sdf.low[inc].to_list()
+        r['g_c'] = self.sdf.close[inc].to_list()
+        r['g_v'] = self.sdf.volume[inc].to_list()
+        #r['g_rsi'] = self.sdf.rsi_14[inc].to_list()
+        
+        r['r_ts'] = self.sdf.timestamp[dec].to_list()
+        r['r_o'] = self.sdf.open[dec].to_list()
+        r['r_h'] = self.sdf.high[dec].to_list()
+        r['r_l'] = self.sdf.low[dec].to_list()
+        r['r_c'] = self.sdf.close[dec].to_list()
+        r['r_v'] = self.sdf.volume[dec].to_list()
+        #r['r_rsi'] = self.sdf.rsi_14[dec].to_list()
+        
+        r['high'] = self.high
+        r['low'] = self.low
+        r['width'] = int((self.sdf.timestamp.iloc[-1] - self.sdf.timestamp.iloc[-2])*2/3)
+        r['start'] = int(self.sdf.timestamp.iloc[0])
+        r['end'] = int(self.sdf.timestamp.iloc[-1])
+        
+        return (r)
         
     def __str__(self):
         return ("<Indicators rsi:%f b:%s s:%s macd:%f macds:%f macdh:%f>" % (self.rsi, self.buy_indicator, self.sell_indicator, self.macd, self.macds, self.macdh))
