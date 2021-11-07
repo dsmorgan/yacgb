@@ -100,7 +100,7 @@ class Indicators(Candles):
         r['g_l'] = self.sdf.low[inc].to_list()
         r['g_c'] = self.sdf.close[inc].to_list()
         r['g_v'] = self.sdf.volume[inc].to_list()
-        r['g_rsi'] = self.sdf.rsi_14[inc].to_list()
+        #r['g_rsi'] = self.sdf.rsi_14[inc].to_list()
         
         r['r_ts'] = self.sdf.timestamp[dec].to_list()
         r['r_o'] = self.sdf.open[dec].to_list()
@@ -108,13 +108,13 @@ class Indicators(Candles):
         r['r_l'] = self.sdf.low[dec].to_list()
         r['r_c'] = self.sdf.close[dec].to_list()
         r['r_v'] = self.sdf.volume[dec].to_list()
-        r['r_rsi'] = self.sdf.rsi_14[dec].to_list()
+        #r['r_rsi'] = self.sdf.rsi_14[dec].to_list()
         
         r['high'] = self.high
         r['low'] = self.low
         r['width'] = int((self.sdf.timestamp.iloc[-1] - self.sdf.timestamp.iloc[-2])*2/3)
-        r['start'] = self.sdf.timestamp.iloc[0]
-        r['end'] = self.sdf.timestamp.iloc[-1]
+        r['start'] = int(self.sdf.timestamp.iloc[0])
+        r['end'] = int(self.sdf.timestamp.iloc[-1])
         
         return (r)
         
