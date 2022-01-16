@@ -1,6 +1,17 @@
 #!/bin/bash
 set -eo pipefail
 
+if ! command -v awsv2 &> /dev/null; then
+    if ! command -v aws &> /dev/null; then
+        echo "no aws cmd found"
+        exit 1
+    else
+        AWSCMD="aws"
+    fi
+else
+    AWSCMD="awsv2"
+fi
+
 if [ -z "$2" ]; then
     echo "Parameters missing"
     echo "Usage: $0 <synctickers|backtest|liveinit|liverun> <event.json>"
@@ -13,10 +24,10 @@ if [[ "$1" != "synctickers" && "$1" != "backtest" && "$1" != "liveinit"  && "$1"
     exit 1
 fi
 
-FUNCTION=$(aws cloudformation describe-stack-resource --stack-name yacgb --logical-resource-id $1 --query 'StackResourceDetail.PhysicalResourceId' --output text)
+FUNCTION=$($AWSCMD cloudformation describe-stack-resource --stack-name yacgb --logical-resource-id $1 --query 'StackResourceDetail.PhysicalResourceId' --output text)
 
 #This assumes aws-cli v2
-aws lambda invoke --function-name $FUNCTION --payload fileb://$2 invoke-out.json --log-type Tail --query 'LogResult' --output text |  base64 -d
+$AWSCMD lambda invoke --function-name $FUNCTION --payload fileb://$2 invoke-out.json --log-type Tail --query 'LogResult' --output text |  base64 -d
 #aws-cli v1 (not tested)
 #aws lambda invoke --function-name $FUNCTION --payload file://$2 invoke-out.json --log-type Tail --query 'LogResult' --output text
 echo ""

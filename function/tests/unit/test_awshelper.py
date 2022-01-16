@@ -51,6 +51,8 @@ def test_yacgb_aws_ps_live():
     assert testconfig.exch_sandbox == {'binanceus': False, 'kraken': False}
     assert len(testconfig.market_list) == 9
     assert testconfig.gbotids == ['testgbotid']
+    
+    
     assert testconfig.shuffled_gbotids == ['testgbotid']
     assert len(testconfig.new_exch) == 0
     assert len(testconfig.del_exch) == 0

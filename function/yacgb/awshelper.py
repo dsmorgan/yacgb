@@ -3,7 +3,7 @@
 import boto3
 import os
 from base64 import b64decode
-from ssm_cache import SSMParameterGroup
+from ssm_cache import SSMParameter, SSMParameterGroup
 import logging
 import random
 import datetime
@@ -42,6 +42,7 @@ class yacgb_aws_ps:
         self._last_refresh_time = None
         self.with_decryption=with_decryption
         self.configgrp=None
+        self.config_gbotids=None
         self.exch={}
         self.exch_apikey={}
         self.exch_secret={}
@@ -100,7 +101,9 @@ class yacgb_aws_ps:
         if self.ps == False:
             return self.gbotids
         try:
-            self.gbotids = self.configgrp.parameter('/gbotids').value
+            #self.gbotids = self.configgrp.parameter('/gbotids').value
+            self.config_gbotids = SSMParameter('/'+self.bp+'/'+self.env+'/gbotids')
+            self.gbotids = self.config_gbotids.value
         except:
             self.gbotids = []
             self.gbotids.append('not_set')
@@ -108,6 +111,9 @@ class yacgb_aws_ps:
         return(self.gbotids)
         
     def collect(self):
+        #logger.info(self._should_refresh())
+        #logger.info(self._max_age_delta)
+        
         if self.ps and self._should_refresh():
             logging.info("Collect PS Parameter Group: %s max_age=%d with_decryption=%s" % ('/'+self.bp+'/'+self.env, self._max_age, self.with_decryption))
             self._last_refresh_time = datetime.datetime.utcnow()
@@ -117,7 +123,10 @@ class yacgb_aws_ps:
                 #This should work, but doesn't. max_age only applies to the current parameter, and not sub-parameters
                 self.configgrp = SSMParameterGroup(base_path='/'+self.bp+'/'+self.env, max_age=self._max_age, with_decryption=self.with_decryption)
             try:
-                self.gbotids = self.configgrp.parameter('/gbotids').value
+                self.config_gbotids = SSMParameter('/'+self.bp+'/'+self.env+'/gbotids')
+                self.gbotids = self.config_gbotids.value
+                #self.gbotids = self.configgrp.parameter('/gbotids').value
+                #logger.error(type(self.gbotids))
             except:
                 self.gbotids = []
                 self.gbotids.append('not_set')
