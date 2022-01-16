@@ -10,7 +10,6 @@ from yacgb.bdt import BacktestDateTime
 
 logger = logging.getLogger(__name__)
 
-
 class GbotRunner:
     def __init__(self, gbotid=None, config={}, type='live'):
         #RESET

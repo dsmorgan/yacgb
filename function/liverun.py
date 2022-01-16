@@ -26,8 +26,8 @@ logger.info("CCXT version: %s" % ccxt.__version__)
 psconf=yacgb_aws_ps()
 #OHLCV table lookup cache
 olcache=ohlcvLookup()
-
 myexch={}
+
 for e in psconf.exch:
     myexch[e] = eval ('ccxt.%s ()' % e)
     myexch[e].setSandboxMode(psconf.exch_sandbox[e])
