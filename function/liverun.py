@@ -185,7 +185,7 @@ def lambda_handler(event, context):
     return (response)
 
 if __name__ == "__main__":
-    logfile = 'bot.log'
+    logfile = 'liverun.log'
     logging.basicConfig(level=logging.INFO, format='%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', 
                             datefmt='%Y%m%d %H:%M:%S', filename=logfile)
     if (os.environ.get('DYNAMODB_HOST') == None):

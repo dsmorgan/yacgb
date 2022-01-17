@@ -115,6 +115,6 @@ if __name__ == "__main__":
         except Exception:
             logging.exception("Fatal error in main loop")
             error_count+=1
-        sleep_time = 60 - (time.time()-11) % 60
+        sleep_time = 60 - (time.time()-13) % 60
         logging.info("sleeping %f error count %d" %(sleep_time, error_count))
         time.sleep(sleep_time)

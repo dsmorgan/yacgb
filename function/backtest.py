@@ -109,8 +109,9 @@ def lambda_handler(event, context):
     
 if __name__ == "__main__":
     import json
+    logfile = 'backtest.log'
     logging.basicConfig(level=logging.INFO, format='%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', 
-                            datefmt='%Y%m%d %H:%M:%S', filename='backtest.log')
+                            datefmt='%Y%m%d %H:%M:%S', filename=logfile)
     if (os.environ.get('DYNAMODB_HOST') == None):
         print ('DYNAMODB_HOST not set')
         exit()
