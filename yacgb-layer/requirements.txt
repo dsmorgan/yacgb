@@ -14,3 +14,4 @@ testresources==2.0.1
 pandas==1.2.5
 stockstats==0.3.2
 jsonpickle==2.0.0
+int-date==0.1.8
