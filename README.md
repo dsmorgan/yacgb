@@ -15,6 +15,7 @@ Built using:
 Prerequisites:
 - Python3.x (Python 3.8 is preferred, based on AWS Lambda support)
 - AWS CLI (awscli v2, although v1 may work as well)
+- AWS SAM (recommended for simplified installation)
 
 ```shell
 $ git clone https://github.com/dsmorgan/yacgb.git
@@ -41,17 +42,11 @@ $ ./1-create-bucket.sh
 make_bucket: yacgb-e7cccc733e0f6dac
 
 ```
-Build the layers, resolve and missing dependencies before moving to the next step.
+
+*Edit the next script*, and configure the exchanges and market symbols you plan to use. To be safe, you can avoid setting the apikey, secret and (sometimes) password in the script and instead set these through the AWS console. Additional exchange and symbols can be added as needed later.
 
 ```shell
-$ ./2-build-layer.sh
-Collecting...
-
-```
-Edit the next script, and configure the exchanges and market symbols you plan to use. To be safe, you can avoid setting the apikey, secret and (sometimes) password in the script and instead set these through the AWS console. Additional exchange and symbols can be added as needed later.
-
-```shell
-$ ./2.5-config-sm-pss.sh 
+$ ./1.5-sample-config-sm-pss.sh 
 
 {
     "Version": 1
@@ -59,6 +54,14 @@ $ ./2.5-config-sm-pss.sh
 ```
 
 Navigate to the AWS "Systems Manager", then to the "Parameter Store" under the Application Management sub menu to modify or add additional values if required.
+
+Build the layers, resolve and missing dependencies before moving to the next step.
+
+```shell
+$ ./2-build.sh
+Collecting...
+
+```
 
 Use the next script to setup the Cloud Formation to deploy the IAM roles and Lambda application.
 
@@ -86,11 +89,13 @@ A snippet of the log should be shown, and the "OK" indicates a successful execut
 
 In order to keep the synctickers running periodically, you'll need to manually create a trigger (Event Bridge) that will execute the lambda auatomatically every configured period. 1 minute is preferred, and can be done by setting the Schedule Expression to: rate(1 minute)
 
+*Note:* the above is already done for you if using sam
+
 Currently, no ticker data is deleted so manual purging is required if necessary. However, the AWS free-tier (at time of writting) allows 25GB for free, and the ticker data is highly compressed so this isn't something of immediate concern.
 
 
 ## Deploy in AWS, using SAM
-Work in progress
+Use the same scripts as shown above, which will prefer to use sam if the command is available
 
 
 ## Run Locally

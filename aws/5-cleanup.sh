@@ -1,6 +1,14 @@
 #!/bin/bash
 set -eo pipefail
 STACK=yacgb
+
+if command -v sam &> /dev/null; then
+  cd ../
+  sam delete --stack-name $STACK
+  exit 0
+fi
+
+
 if [[ $# -eq 1 ]] ; then
     STACK=$1
     echo "Deleting stack $STACK"
