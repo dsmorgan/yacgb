@@ -82,7 +82,7 @@ Resources:
       Environment:
         Variables:
           AWS_PS_GROUP: prod
-          AWS_PS_MAX_AGE: 300
+          AWS_PS_MAX_AGE: 30
           TABLE_MARKET: !Ref Market
           TABLE_OHLCV: !Ref OHLCV
           TABLE_GBOT: !Ref Gbot
@@ -115,7 +115,7 @@ Resources:
       Environment:
         Variables:
           AWS_PS_GROUP: prod
-          AWS_PS_MAX_AGE: 1200
+          AWS_PS_MAX_AGE: 14400
           TABLE_MARKET: !Ref Market
           TABLE_OHLCV: !Ref OHLCV
           TABLE_GBOT: !Ref Gbot
