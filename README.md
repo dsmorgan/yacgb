@@ -7,7 +7,7 @@ Built using:
 - ccxt library, enabling access to just about every crypto exchange out there
 - pynamodb library, enabling persistence using AWS DynamoDB
 
-[^1]: Leveraging AWS Free-Tier, which [notoriously lacks any guardrails](https://www.lastweekinaws.com/blog/is-the-aws-free-tier-really-free/). No gurantees it will actually cost you nothing and requires fairly regular monitoring and experience in AWS cost management practices, YMMV.
+[^1]: Leveraging the [AWS Free-Tier](https://aws.amazon.com/free/), which [notoriously lacks any guardrails](https://www.lastweekinaws.com/blog/is-the-aws-free-tier-really-free/). No gurantees it will actually cost you nothing, as some dependant services required are only free for a limited time (e.g. S3) and requires fairly regular monitoring and experience in AWS cost management practices. YMMV.
 
 ---
 
@@ -15,7 +15,7 @@ Built using:
 Prerequisites:
 - Python3.x (Python 3.8 is preferred, based on AWS Lambda support)
 - AWS CLI (awscli v2, although v1 may work as well)
-- AWS SAM (recommended for simplified installation)
+- AWS SAM CLI (1.32 or newer, although may install sub-optimally without it)
 
 ```shell
 $ git clone https://github.com/dsmorgan/yacgb.git
@@ -35,11 +35,12 @@ Use the scripts in the aws directory to build and deploy.
 $ cd yacgb/aws
 
 ```
-Create bucket for storing the lambda and layers.
+Create bucket for storing the lambda and layers (skipped if using SAM).
 
 ```shell
 $ ./1-create-bucket.sh
-make_bucket: yacgb-e7cccc733e0f6dac
+SAM CLI, version 1.32.0
+sam command available, no need to create s3 buckets manually, skipping
 
 ```
 
@@ -50,7 +51,10 @@ $ ./1.5-sample-config-sm-pss.sh
 
 {
     "Version": 1
+    "Tier": "Standard"
 ...
+
+You'll need to goto the AWS console to the SSM Parameter Store to complete the configuration of markets, apikeys, secrets and passwords
 ```
 
 Navigate to the AWS "Systems Manager", then to the "Parameter Store" under the Application Management sub menu to modify or add additional values if required.
@@ -59,22 +63,18 @@ Build the layers, resolve and missing dependencies before moving to the next ste
 
 ```shell
 $ ./2-build.sh
-Collecting...
+Building codeuri: ...
 
+Build Succeeded
 ```
 
 Use the next script to setup the Cloud Formation to deploy the IAM roles and Lambda application.
 
 ```shell
 $ ./3-deploy.sh  
-Uploading to be3a6ef10140b918018413f1a656b614  24320563 / 24320563.0  (100.00%)
-Successfully packaged artifacts and wrote output template to file aws/out.yml.
-Execute the following command to deploy the packaged template
-aws cloudformation deploy --template-file /home/dsm/workspace/yacgb/aws/out.yml --stack-name <YOUR STACK NAME>
+Uploading to ...
 
-Waiting for changeset to be created..
-Waiting for stack create/update to complete
-Successfully created/updated stack - yacgb
+Successfully created/updated stack - yacgb in us-west-2
 ```
 You can test the syncticker configuration and invoke it once to ensure everything is working (pass it any event.json file, its contents are ignored)...
 
@@ -94,14 +94,10 @@ In order to keep the synctickers running periodically, you'll need to manually c
 Currently, no ticker data is deleted so manual purging is required if necessary. However, the AWS free-tier (at time of writting) allows 25GB for free, and the ticker data is highly compressed so this isn't something of immediate concern.
 
 
-## Deploy in AWS, using SAM
-Use the same scripts as shown above, which will prefer to use sam if the command is available
-
-
 ## Run Locally
 For test and development purposes, the bot components can be run locally as well, with the addition of:
 * use pip to satisfy dependencies locally
-* Download and install from AWS a local dynamodb for development/testing purposes
+* Download and install from AWS a [local dynamodb](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) for development/testing purposes
 
 
 **IMPORTANT:** When running locally, you need to make sure to set the environment variable to override the default location of the Dynamodb service, e.g. export DYNAMODB_HOST=http://localhost:8000. Otherwise, your awscli credentials and configuration may be used to leverage the AWS services remotely.
@@ -161,7 +157,8 @@ The following table describes all the settings that are currently available.
 | init_market_order | (optional) Not implemented yet | 
 | backtest_start | (optional, default: <now>, backtest only) Backtest start timestamp in UTC, using YYYYMMDD HH:MM format, e.g. 20210526 19:00 |
 | backtest_end  | (optional, default: <now>, backtest only) Backtest end timestamp in UTC, using YYYYMMDD HH:MM format, e.g. 20210528 01:00 |
-| backtest_timeframe | (optional, default: 1h, backtest only) determines what timeframe to use in backtesting (1m | 1h | 1d) |
+| backtest_timeframe | (optional, default: 1h, backtest only) determines what timeframe to use in backtesting (1m, 1h, 1d) |
+| dynamic_grid | (optional, default: False, experimental) changes multiple behaviors: buys/sells are potential beyond a grid based on RSI values, buys and sells are dynamically triggered instead of pre-set, and the grid is reset around each buy or sell. The net effect is that drastic price swings are captured, at a cost of less orders being executed and extending the grid range.|
 
 backtest only settings are safely ignored when used for liveinit
 
@@ -225,20 +222,48 @@ That's it! Use Cloudwatch to check on status, as well as your exchange's trade i
 *Note:* currently, the Parameter Store is only read once on initiatialization of the lambda, therefore it is not deterministic when changing the "/yacgb/prod/gbotids" setting is applied with the Event Bridge trigger set. In the Lambda's configuration page, you can set a bogus environment parameter to force the Lambda to re-read Parameter Store settings. 
 
 
+
+## Upgrading
+SAM has built in support for uninterrupted upgrading of the application. Pull down the latest version, (test it), build and deploy.
+
+```shell
+$ git pull
+remote: ...
+
+```
+
+Once built SAM will manage aliases for new versions of components with a deploy
+```shell
+$ sam build
+Building codeuri: ...
+
+Build Succeeded
+
+
+$ sam deploy
+Uploading to ...
+
+```
+
+Check the lambda application and related functions to see the version increment and the alias pointing to the latest. If any issues occur, you can revert the alias to an ealier version.
+
+
 ## Deleting and Cleanup
 Use the script in the aws directory to delete the stack and cleanup most of the functions.
 
 ```shell
+$ cd ~/workspace/yacgb/aws
 $ ./5-cleanup.sh
-Deleted yacgb stack.
-Delete deployment artifacts and bucket (yacgb-e7cccc733e0f6dac)? (y/n)y
-delete: s3://yacgb-e7cccc733e0f6dac/8fe9cf785d08943d9904b5e1c82d2c23
-delete: s3://yacgb-e7cccc733e0f6dac/be3a6ef10140b918018413f1a656b614
-remove_bucket: yacgb-e7cccc733e0f6dac
-Delete function log group (/aws/lambda/yacgb-synctickers-772VVOXEiVVr)? (y/n)y
+     Are you sure you want to delete the stack yacgb in the region us-west-2 ? [y/N]: y
+     Are you sure you want to delete the folder yacgb in S3 which contains the artifacts? [y/N]: y
+	- Deleting S3 object ...
+
+
+Deleted successfully
 ```
 
 Some things that yiou may need to deleted to remove all traces of this deployment:
 - Cloudwatch - remove all log groups associated with the yacgb application
 - System Manager - remove all the parameter store configuration starting with "/yacgb"
-- DynamoDB - delete the tables: OHLCV, Gbot, Market, and Orders (if they exist)
+- DynamoDB - delete the tables: OHLCV, Gbot, Market, and Orders (if they exist, which should occur if only if you didn't use SAM)
+- CloudFormation - stack *aws-sam-cli-managed-default* (this is a remnent of SAM, be careful if using SAM for other appliactions that may depend on it)
